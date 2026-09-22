@@ -311,18 +311,18 @@ trigger; none is marked `UNREACHABLE`.
 
 | Id | Invariant | Result |
 | --- | --- | --- |
-| INV-01 | Null cost is unpriced and distinct from zero cost | |
-| INV-02 | Null quantity never silently becomes zero | |
-| INV-03 | Rate-only keeps a selling rate and has no line amount | |
-| INV-04 | Unknown quantity has no amount and blocks approval | |
-| INV-05 | `assemblyCost` rounds `(material+labour+other) × (1+adjustment/100)` | |
-| INV-06 | `sellingRate` rounds `cost × (1+markup/100)`, markup on cost | |
-| INV-07 | `markupOverride` takes precedence over project markup | |
-| INV-08 | Line amount rounds `quantity × rounded selling rate` | |
-| INV-09 | GST applies to the subtotal | |
-| INV-10 | Applying a quote clears review state and assembly | |
-| INV-11 | Editing cost, spec, quantity or pricing reopens Draft | |
-| INV-12 | Approval requires priced lines, resolved quantities, unexpired evidence | |
-| INV-13 | `applyRate` refuses mismatched units | |
-| INV-14 | `applyRate` refuses expired evidence | |
-| INV-15 | `normalUnit` aliases resolve correctly and do not over-merge | |
+| INV-01 | Null cost is unpriced and distinct from zero cost | PASS (`tests/costing.test.ts` "INV-01: zero cost is priced and distinct from null cost") |
+| INV-02 | Null quantity never silently becomes zero | PASS (`tests/costing.test.ts` "INV-02 and INV-03: a rate-only line has a selling rate but no amount") |
+| INV-03 | Rate-only keeps a selling rate and has no line amount | PASS (`tests/costing.test.ts` "INV-02 and INV-03: a rate-only line has a selling rate but no amount") |
+| INV-04 | Unknown quantity has no amount and blocks approval | PASS for the "no amount" half (`tests/costing.test.ts` "INV-04: an unknown quantity produces no amount"); the "blocks approval" half is UI-gating logic in `src/components/BoqPage.tsx`, not a `costing.ts` pure function, and was not exercised by Task 4 |
+| INV-05 | `assemblyCost` rounds `(material+labour+other) × (1+adjustment/100)` | PASS (`tests/costing.test.ts` "INV-05: assembly cost applies the adjustment after summing components") |
+| INV-06 | `sellingRate` rounds `cost × (1+markup/100)`, markup on cost | PASS (`tests/costing.test.ts` "INV-06: markup is applied on cost, not as a gross margin"; also covered by the pre-existing "uses markup on cost and rounds per-line selling prices before GST" test) |
+| INV-07 | `markupOverride` takes precedence over project markup | PASS (`tests/costing.test.ts` "INV-07: a per-item markup override wins over the project markup") |
+| INV-08 | Line amount rounds `quantity × rounded selling rate` | PASS (`tests/costing.test.ts` "INV-08: line amount multiplies quantity by the already-rounded selling rate") |
+| INV-09 | GST applies to the subtotal | PASS (pre-existing test "uses markup on cost and rounds per-line selling prices before GST": `t.tax` = 6.57 on `t.selling` = 36.48) |
+| INV-10 | Applying a quote clears review state and assembly | PASS (pre-existing test "applying a quotation always requires renewed review": `updated.reviewed` is `false`; `applyRate` in `src/lib/costing.ts` also sets `assembly: undefined` on the same returned object, not separately asserted by name) |
+| INV-11 | Editing cost, spec, quantity or pricing reopens Draft | Not tested by Task 4 — this is UI state-machine logic in `src/components/BoqPage.tsx`, not a pure function in `src/lib/costing.ts`, and is outside this task's scope (costing invariants / pure functions only) |
+| INV-12 | Approval requires priced lines, resolved quantities, unexpired evidence | Not tested by Task 4 — this is UI approval-gating logic in `src/components/BoqPage.tsx`, not a pure function in `src/lib/costing.ts`, and is outside this task's scope |
+| INV-13 | `applyRate` refuses mismatched units | PASS (pre-existing test "rejects incompatible units and expired quotations": throws `'Units do not match'`; also covered by new "INV-13 and INV-15" unit-compatibility test) |
+| INV-14 | `applyRate` refuses expired evidence | PASS (pre-existing test "rejects incompatible units and expired quotations": throws `'expired'`) |
+| INV-15 | `normalUnit` aliases resolve correctly and do not over-merge | PASS (`tests/costing.test.ts` "INV-13 and INV-15: unit aliases compare correctly without over-merging") |

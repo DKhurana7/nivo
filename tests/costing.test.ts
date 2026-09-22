@@ -75,3 +75,70 @@ describe('pricing invariants', () => {
     ).toBe(false);
   });
 });
+
+import { assemblyCost, isStale, lineAmount, unitCompatible } from '../src/lib/costing';
+import type { Item, Rate } from '../src/lib/types';
+
+const item = (over: Partial<Item> = {}): Item => ({
+  id: 'i1',
+  description: 'Test line',
+  specification: '',
+  category: 'Electrical',
+  unit: 'nos',
+  quantity: 1,
+  cost: 100,
+  reviewed: false,
+  ...over,
+});
+
+describe('costing invariants', () => {
+  it('INV-01: zero cost is priced and distinct from null cost', () => {
+    expect(sellingRate(item({ cost: 0 }), 20)).toBe(0);
+    expect(sellingRate(item({ cost: null }), 20)).toBeNull();
+  });
+
+  it('INV-02 and INV-03: a rate-only line has a selling rate but no amount', () => {
+    const ro = item({ quantity: null, quantityKind: 'rate-only' });
+    expect(sellingRate(ro, 20)).toBe(120);
+    expect(lineAmount(ro, 20)).toBeNull();
+  });
+
+  it('INV-04: an unknown quantity produces no amount', () => {
+    expect(lineAmount(item({ quantity: null, quantityKind: 'unknown' }), 20)).toBeNull();
+  });
+
+  it('INV-05: assembly cost applies the adjustment after summing components', () => {
+    expect(assemblyCost({ material: 100, labour: 50, other: 10, adjustment: 10 })).toBe(176);
+    expect(assemblyCost({ material: 0, labour: 0, other: 0, adjustment: 25 })).toBe(0);
+  });
+
+  it('INV-06: markup is applied on cost, not as a gross margin', () => {
+    expect(sellingRate(item({ cost: 100 }), 20)).toBe(120);
+    expect(sellingRate(item({ cost: 100 }), 0)).toBe(100);
+  });
+
+  it('INV-07: a per-item markup override wins over the project markup', () => {
+    expect(sellingRate(item({ cost: 100, markupOverride: 50 }), 20)).toBe(150);
+    expect(sellingRate(item({ cost: 100, markupOverride: 0 }), 20)).toBe(100);
+  });
+
+  it('INV-08: line amount multiplies quantity by the already-rounded selling rate', () => {
+    const i = item({ cost: 33.333, quantity: 3 });
+    const rate = sellingRate(i, 0)!;
+    expect(rate).toBe(33.33);
+    expect(lineAmount(i, 0)).toBe(99.99);
+  });
+
+  it('INV-13 and INV-15: unit aliases compare correctly without over-merging', () => {
+    const rate = (unit: string): Rate => ({ unit }) as Rate;
+    expect(unitCompatible(item({ unit: 'sq ft' }), rate('sqft'))).toBe(true);
+    expect(unitCompatible(item({ unit: 'nos' }), rate('pcs'))).toBe(true);
+    expect(unitCompatible(item({ unit: 'sq ft' }), rate('sq m'))).toBe(false);
+    expect(unitCompatible(item({ unit: 'm' }), rate('r ft'))).toBe(false);
+  });
+
+  it('H-01: a rate with a blank validity must not be permanently expired', () => {
+    const blank = { validUntil: '' } as Rate;
+    expect(isStale(blank, '2026-09-23')).toBe(false);
+  });
+});
