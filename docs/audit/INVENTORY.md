@@ -242,33 +242,33 @@ trigger; none is marked `UNREACHABLE`.
 
 | Id | Endpoint | Correct behaviour | Result |
 | --- | --- | --- | --- |
-| API-01 | `GET /api/health` | 200 without authentication | |
-| API-02 | `GET /api/session` | Returns session when authenticated; unauthenticated shape is safe | |
-| API-03 | `POST /api/login` | Valid credentials set an HttpOnly SameSite=Strict cookie | |
-| API-04 | `POST /api/login` wrong password | Rejected; no cookie; rate limited on repeat | |
-| API-05 | `POST /api/logout` | Invalidates the session; subsequent calls unauthorised | |
-| API-06 | `GET /api/workspace` | Returns only the authenticated account's workspace | |
-| API-07 | `PUT /api/workspace` | Saves with a matching revision | |
-| API-08 | `PUT /api/workspace` stale revision | Returns 409 and does NOT overwrite | |
-| API-09 | `PUT /api/workspace` invalid body | Rejected by shared validation, not persisted | |
-| API-10 | `PUT /api/files/:id` | Stores workbook bytes; enforces the 10 MB body limit | |
-| API-11 | `GET /api/files/:id` | Returns bytes byte-identical to what was stored | |
-| API-12 | `GET /api/voice/status` | Reports provider availability without leaking any secret | |
-| API-13 | `GET /api/calls` | Lists only the authenticated account's calls | |
-| API-14 | `GET /api/calls/:id` | Own call returns 200; another account's returns 404 or 403, never content | |
-| API-15 | `POST /api/calls` | Creates a call; a repeated request id is idempotent | |
-| API-16 | `POST /api/calls` phone mode | Refused while `ENABLE_OUTBOUND_CALLS=false` | |
-| API-17 | `POST /api/calls/:id/end` | Ends the call; ending an already-ended call is harmless | |
-| API-18 | `GET /api/agent/calls/:id` | Requires a valid HMAC; returns the brief without internal prices | |
-| API-19 | `POST /api/agent/events` | Valid signature accepted | |
-| API-20 | `POST /api/agent/events` bad signature | Rejected 401 | |
-| API-21 | `POST /api/agent/events` replayed event id | Rejected, does not duplicate the transcript | |
-| API-22 | `POST /api/agent/events` expired timestamp | Rejected outside the five-minute window | |
-| API-23 | `POST /api/agent/events` late event on terminal call | Does NOT reopen the call | |
-| API-24 | `POST /api/agent/events` null payload | Returns 400, not 500 | |
-| API-25 | `POST /api/calls/:id/extract` | Produces a validated draft or a clear error | |
-| API-26 | any mutation without the same-origin header | Rejected | |
-| API-27 | any authenticated route without a cookie | 401, never partial data | |
+| API-01 | `GET /api/health` | 200 without authentication | PASS — `curl /api/health` → 200 with no cookie/headers. |
+| API-02 | `GET /api/session` | Returns session when authenticated; unauthenticated shape is safe | PASS — unauth → 401 `{error}` only (curl); authed shape covered by `api.test.ts`. |
+| API-03 | `POST /api/login` | Valid credentials set an HttpOnly SameSite=Strict cookie | PASS — `curl -si /api/login` → `Set-Cookie: nivo_session=...; HttpOnly; SameSite=Strict; Path=/; Max-Age=604800` (Secure absent, expected in dev). |
+| API-04 | `POST /api/login` wrong password | Rejected; no cookie; rate limited on repeat | **FAIL — see F-02 (Blocker).** `isolation.test.ts` "API-04" + live curl (14x) show no 429 ever; rate limiting is a silent no-op. |
+| API-05 | `POST /api/logout` | Invalidates the session; subsequent calls unauthorised | PASS — `isolation.test.ts` "API-05". |
+| API-06 | `GET /api/workspace` | Returns only the authenticated account's workspace | PASS — `isolation.test.ts` "API-06" (cross-account read isolation). |
+| API-07 | `PUT /api/workspace` | Saves with a matching revision | PASS — `api.test.ts` (matching-revision save → 200). |
+| API-08 | `PUT /api/workspace` stale revision | Returns 409 and does NOT overwrite | PASS — `isolation.test.ts` "API-08" + `api.test.ts` (409, no overwrite). |
+| API-09 | `PUT /api/workspace` invalid body | Rejected by shared validation, not persisted | PASS — `isolation.test.ts` "API-09" (400, revision unchanged). |
+| API-10 | `PUT /api/files/:id` | Stores workbook bytes; enforces the 10 MB body limit | PASS — `api.test.ts` (stores bytes) + `isolation.test.ts` "API-10" (413 over 10 MB). |
+| API-11 | `GET /api/files/:id` | Returns bytes byte-identical to what was stored | PASS — `isolation.test.ts` "API-11" (byte-identical for owner; 404 for other account). |
+| API-12 | `GET /api/voice/status` | Reports provider availability without leaking any secret | PASS — live `curl /api/voice/status` scanned for key/secret/token/password substrings: none found. |
+| API-13 | `GET /api/calls` | Lists only the authenticated account's calls | PASS — `isolation.test.ts` "API-13/API-14" (other account's list is empty). |
+| API-14 | `GET /api/calls/:id` | Own call returns 200; another account's returns 404 or 403, never content | PASS — `isolation.test.ts` "API-13/API-14" (other account's call id → 404). |
+| API-15 | `POST /api/calls` | Creates a call; a repeated request id is idempotent | PASS — `api.test.ts` (voice lifecycle: repeated requestId → `replayed:true`, single `starts`). |
+| API-16 | `POST /api/calls` phone mode | Refused while `ENABLE_OUTBOUND_CALLS=false` | PASS — `isolation.test.ts` "API-16" (mode=phone, ENABLE_OUTBOUND_CALLS unset → 403, startRoom never called). |
+| API-17 | `POST /api/calls/:id/end` | Ends the call; ending an already-ended call is harmless | PASS — `api.test.ts` (voice lifecycle: ending an ended call is a no-op, `ends` does not re-increment). |
+| API-18 | `GET /api/agent/calls/:id` | Requires a valid HMAC; returns the brief without internal prices | PASS — `isolation.test.ts` "API-18", brief built via the real `callBrief()` against a priced item: no signature → 401; valid HMAC → 200; response contains no `cost` field and not the item's cost value. |
+| API-19 | `POST /api/agent/events` | Valid signature accepted | PASS — `api.test.ts` (agent callback: valid HMAC → 200). |
+| API-20 | `POST /api/agent/events` bad signature | Rejected 401 | PASS — `isolation.test.ts` "API-20" (bad signature → 401, call state unchanged). |
+| API-21 | `POST /api/agent/events` replayed event id | Rejected, does not duplicate the transcript | PASS — `api.test.ts` (replayed event id → `duplicate:true`, transcript not duplicated). |
+| API-22 | `POST /api/agent/events` expired timestamp | Rejected outside the five-minute window | PASS — `isolation.test.ts` "API-22" (timestamp 10 min old → 401, call state unchanged). |
+| API-23 | `POST /api/agent/events` late event on terminal call | Does NOT reopen the call | PASS — `isolation.test.ts` "API-23" + `api.test.ts` (late event on ended call does not reopen it). |
+| API-24 | `POST /api/agent/events` null payload | Returns 400, not 500 | PASS — `isolation.test.ts` "API-24" + `api.test.ts` (JSON `null` payload → 400, not 500). |
+| API-25 | `POST /api/calls/:id/extract` | Produces a validated draft or a clear error | PARTIAL — `isolation.test.ts` "API-25" proves tenant scoping (other account's call id → 404 before extraction runs). Full success-path extraction NOT exercised: it calls out to the local LLM at `EXTRACTION_BASE_URL`, which is outside this security-isolation task's scope; validation-logic coverage exists separately in `api.test.ts` ("extraction rejects invented evidence..."). |
+| API-26 | any mutation without the same-origin header | Rejected | PASS — `isolation.test.ts` "API-26" (missing `x-nivo-request` → 403, not persisted) + `api.test.ts` (wrong `origin` → 403). |
+| API-27 | any authenticated route without a cookie | 401, never partial data | PASS — `isolation.test.ts` "API-27" (5 authenticated routes, no cookie → 401, no partial data) + live curl with a tampered/forged cookie value → 401. |
 
 ## Exports, backup and workbook
 
