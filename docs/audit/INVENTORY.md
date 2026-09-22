@@ -148,12 +148,12 @@ trigger; none is marked `UNREACHABLE`.
 
 | Id | Control | Correct behaviour | Local | Studio |
 | --- | --- | --- | --- | --- |
-| CTL-59 | `forms.tsx:29-105` `ProjectForm`: name, client, project type, location, target-date fields; "Cancel"; "Delete project" (shown only when editing an existing project); Save/Create submit | see DLG-01 for the dialog mechanics. Saving persists all five fields (name, client, project type, location, target date) to the project; name, client and location are required (`required` attribute) and block submission if blank, while target date may be left blank; Cancel discards all field edits and makes no change; "Delete project" hands off to DLG-02 without itself saving anything | | |
+| CTL-59 | `forms.tsx:29-105` `ProjectForm`: name, client, project type, location, target-date fields; "Cancel"; "Delete project" (shown only when editing an existing project); Save/Create submit | see DLG-01 for the dialog mechanics. Saving persists all five fields (name, client, project type, location, target date) to the project; name, client and location are required (`required` attribute) and block submission if blank, while target date may be left blank; Cancel discards all field edits and makes no change; "Delete project" hands off to DLG-02 without itself saving anything. Additionally, every `ProjectForm` save unconditionally sets `stage: 'Draft'` and maps every item in the project to `{ ...item, reviewed: false }` (`forms.tsx:47-48`), regardless of whether name, client, type, location or target date actually changed. This is a neutral observation of current behaviour, not a defect determination; it is exactly parallel to the `ItemForm` save-time side effects at CTL-111/CTL-112/CTL-113 | | |
 | CTL-60 | `forms.tsx:107-285` `ItemForm` main fields (description, specification, category, unit, quantity basis, quantity, unit cost) plus Cancel/Save | see DLG-03 for the dialog mechanics. Saving persists description, specification, category, unit, quantity basis, quantity and unit cost to the item (description is required); Cancel discards all field edits and makes no change. See CTL-111/CTL-112/CTL-113 for three additional save-time side effects (`rateId` reset, quantity-basis rewrite, assembly cost override) not otherwise visible from these fields alone | | |
 | CTL-61 | `forms.tsx:218-254` `ItemForm` assembly breakdown, inside the "Cost breakdown & item markup" disclosure (see CTL-115): "Calculate unit cost from the components below" checkbox, material/labour/other/adjustment inputs, item-markup override | see DLG-07 for the dialog mechanics. Material, labour and other are ₹-per-unit amounts (each min 0); adjustment is a percentage applied on top of the base cost, not a ₹ amount; item markup accepts 0–500 (%) and overrides the project markup for this item alone when non-blank. See CTL-113 for the checkbox's effect on the Unit cost field in CTL-60 | | |
-| CTL-111 | `forms.tsx:124,138` `ItemForm` save behaviour: `rateId: undefined` is set unconditionally on every save (`const next = { ...item, rateId: undefined, ... }`) | Saving an item from `ItemForm` — via any of CTL-28/CTL-32/CTL-60's triggers — always clears the item's link to its source rate (`item.rateId`), regardless of whether the description, specification, unit or quantity actually changed. This is a neutral observation of current behaviour, not a defect determination; it directly affects what CTL-30 (review-toggle's stale-source check) and CTL-34 (Approve reviewed BOQ's stale-source check) can find via `i.rateId` after any edit-and-save of an item that came from a matched rate | | |
+| CTL-111 | `forms.tsx:138` `ItemForm` save behaviour: `rateId: undefined` is set unconditionally on every save (`const next = { ...item, rateId: undefined, ... }`) | Saving an item from `ItemForm` — via any of CTL-28/CTL-32/CTL-60's triggers — always clears the item's link to its source rate (`item.rateId`), regardless of whether the description, specification, unit or quantity actually changed. This is a neutral observation of current behaviour, not a defect determination; it directly affects what CTL-30 (review-toggle's stale-source check) and CTL-34 (Approve reviewed BOQ's stale-source check) can find via `i.rateId` after any edit-and-save of an item that came from a matched rate | | |
 | CTL-112 | `forms.tsx:145-146` `ItemForm` save behaviour: `quantityKind: kind === 'measured' && d.get('quantity') === '' ? 'unknown' : kind` | Choosing "Measured quantity" as the quantity basis and leaving the Quantity field blank on save silently rewrites the saved `quantityKind` to `unknown`, rather than keeping it as `measured` with a null quantity. Neutral observation of current behaviour, not a defect determination | | |
-| CTL-113 | `forms.tsx:150` `ItemForm` save behaviour: `cost: assembly ? assemblyCost(assembly) : raw === '' ? null : Number(raw)` | When the "Calculate unit cost from the components below" checkbox (CTL-61/CTL-115) is checked, the saved unit cost is always computed from material/labour/other/adjustment via `assemblyCost()`, overriding whatever value is currently typed into the Unit cost field (CTL-60) — the typed Unit cost value is discarded, not merely hidden. Neutral observation of current behaviour, not a defect determination | | |
+| CTL-113 | `forms.tsx:149` `ItemForm` save behaviour: `cost: assembly ? assemblyCost(assembly) : raw === '' ? null : Number(raw)` | When the "Calculate unit cost from the components below" checkbox (CTL-61/CTL-115) is checked, the saved unit cost is always computed from material/labour/other/adjustment via `assemblyCost()`, overriding whatever value is currently typed into the Unit cost field (CTL-60) — the typed Unit cost value is discarded, not merely hidden. Neutral observation of current behaviour, not a defect determination | | |
 | CTL-115 | `forms.tsx:218-219` "Cost breakdown & item markup" `<details>/<summary>` disclosure, collapsed by default | Expanding it reveals the assembly-breakdown controls (CTL-61); the checkbox, inputs and item-markup override are not visible or reachable until this disclosure is expanded | | |
 | CTL-117 | `forms.tsx:255-264` "Inherited specification · {item.section \|\| 'Source context'}" `<details>/<summary>` disclosure, rendered only when `item.context?.length` is truthy (i.e. only for items carrying imported source context, typically from a workbook import) | Expanding it lists each inherited context row (`Row {c.row}`, `{c.text}`) read-only; not rendered at all for an item with no `context` entries | | |
 | CTL-62 | `forms.tsx:286-355` `VendorForm`: company name, contact, category, phone, email, location, notes fields plus Cancel/Save | Not covered by any `DLG-*` row. Save persists the vendor (create when opened without a `vendor`, update in place when opened with one) and closes; Cancel discards the edit | | |
@@ -237,3 +237,92 @@ trigger; none is marked `UNREACHABLE`.
 | CTL-108 | `WorkspacePages.tsx:525-548` vendor-row button, repeated once per vendor | Opens that vendor's detail modal | | |
 | CTL-109 | `WorkspacePages.tsx:550-558` Vendors page "Add a vendor" empty-state button, rendered only when the filtered list is empty | Same as CTL-106 | | |
 | CTL-110 | `WorkspacePages.tsx:590-600` vendor-detail "Edit vendor" button | Closes the detail modal and reopens `VendorForm` pre-filled with that vendor; see CTL-62 | | |
+
+## API endpoints
+
+| Id | Endpoint | Correct behaviour | Result |
+| --- | --- | --- | --- |
+| API-01 | `GET /api/health` | 200 without authentication | |
+| API-02 | `GET /api/session` | Returns session when authenticated; unauthenticated shape is safe | |
+| API-03 | `POST /api/login` | Valid credentials set an HttpOnly SameSite=Strict cookie | |
+| API-04 | `POST /api/login` wrong password | Rejected; no cookie; rate limited on repeat | |
+| API-05 | `POST /api/logout` | Invalidates the session; subsequent calls unauthorised | |
+| API-06 | `GET /api/workspace` | Returns only the authenticated account's workspace | |
+| API-07 | `PUT /api/workspace` | Saves with a matching revision | |
+| API-08 | `PUT /api/workspace` stale revision | Returns 409 and does NOT overwrite | |
+| API-09 | `PUT /api/workspace` invalid body | Rejected by shared validation, not persisted | |
+| API-10 | `PUT /api/files/:id` | Stores workbook bytes; enforces the 10 MB body limit | |
+| API-11 | `GET /api/files/:id` | Returns bytes byte-identical to what was stored | |
+| API-12 | `GET /api/voice/status` | Reports provider availability without leaking any secret | |
+| API-13 | `GET /api/calls` | Lists only the authenticated account's calls | |
+| API-14 | `GET /api/calls/:id` | Own call returns 200; another account's returns 404 or 403, never content | |
+| API-15 | `POST /api/calls` | Creates a call; a repeated request id is idempotent | |
+| API-16 | `POST /api/calls` phone mode | Refused while `ENABLE_OUTBOUND_CALLS=false` | |
+| API-17 | `POST /api/calls/:id/end` | Ends the call; ending an already-ended call is harmless | |
+| API-18 | `GET /api/agent/calls/:id` | Requires a valid HMAC; returns the brief without internal prices | |
+| API-19 | `POST /api/agent/events` | Valid signature accepted | |
+| API-20 | `POST /api/agent/events` bad signature | Rejected 401 | |
+| API-21 | `POST /api/agent/events` replayed event id | Rejected, does not duplicate the transcript | |
+| API-22 | `POST /api/agent/events` expired timestamp | Rejected outside the five-minute window | |
+| API-23 | `POST /api/agent/events` late event on terminal call | Does NOT reopen the call | |
+| API-24 | `POST /api/agent/events` null payload | Returns 400, not 500 | |
+| API-25 | `POST /api/calls/:id/extract` | Produces a validated draft or a clear error | |
+| API-26 | any mutation without the same-origin header | Rejected | |
+| API-27 | any authenticated route without a cookie | 401, never partial data | |
+
+## Exports, backup and workbook
+
+| Id | Behaviour | Correct behaviour | Result |
+| --- | --- | --- | --- |
+| EXP-01 | Client quotation export | Opens in Excel; contains selling rates; contains NO purchase cost and no original private sheet | |
+| EXP-02 | Internal costing export | Opens in Excel; contains costs and selling prices | |
+| EXP-03 | Original workbook export | Opens in Excel; unrelated sheets and formulas intact; recalculation requested | |
+| EXP-04 | Original export after structural edit | Refused, per the documented rule that structural edits disable mapping | |
+| EXP-05 | Original export with a formula in a mapped rate cell | Refused, naming the exact cell address | |
+| EXP-06 | Unpriced line in original export | Retains its original source cell rather than being blanked | |
+| BAK-01 | JSON backup, local mode | Downloads; contains the workspace and base64 workbook | |
+| BAK-02 | JSON restore, local mode | Restores to an identical workspace | |
+| BAK-03 | JSON backup and restore, studio mode | Round-trips through the API | |
+| BAK-04 | Studio reset | Clears the workspace; documented to leave calls and audit intact | |
+| WBK-01 | Import a valid XLSX | Mapping, preview, warnings, then items created | |
+| WBK-02 | Import over the 10 MB limit | Rejected with a clear message | |
+| WBK-03 | Import over 10,000 rows or 100 columns | Rejected with a clear message | |
+| WBK-04 | Merged quantity continuation rows | Attach to the anchor item, no duplicate line | |
+| WBK-05 | Zero source rate on import | Treated as a placeholder, not as a real zero cost | |
+| WBK-06 | Manually entered zero cost | Remains an intentional zero, distinct from unpriced | |
+| WBK-07 | Round trip | Imported bytes retrieved from storage hash-match the original file | |
+
+## Voice (browser WebRTC only; no telephone call)
+
+| Id | Behaviour | Correct behaviour | Result |
+| --- | --- | --- | --- |
+| VOI-01 | Voice status panel | Reports readiness accurately when the worker is up and when it is down | |
+| VOI-02 | Start browser test call | Connects; disclosure is spoken and transcribed | |
+| VOI-03 | Mute and unmute | Both take effect | |
+| VOI-04 | End call | Ends; the room is deleted | |
+| VOI-05 | Close the desk mid-setup | Setup cancels; no orphan room is left | |
+| VOI-06 | Enquiry above 20 items | The voice limit is shown | |
+| VOI-07 | Phone call button | Gated and refused while outbound calls are disabled | |
+| VOI-08 | Second concurrent call | Refused; one active call per studio | |
+| VOI-09 | Worker down | Call creation refused rather than hanging | |
+| VOI-10 | Extraction draft review | Draft never changes a price automatically; evidence survives save | |
+
+## Domain invariants
+
+| Id | Invariant | Result |
+| --- | --- | --- |
+| INV-01 | Null cost is unpriced and distinct from zero cost | |
+| INV-02 | Null quantity never silently becomes zero | |
+| INV-03 | Rate-only keeps a selling rate and has no line amount | |
+| INV-04 | Unknown quantity has no amount and blocks approval | |
+| INV-05 | `assemblyCost` rounds `(material+labour+other) × (1+adjustment/100)` | |
+| INV-06 | `sellingRate` rounds `cost × (1+markup/100)`, markup on cost | |
+| INV-07 | `markupOverride` takes precedence over project markup | |
+| INV-08 | Line amount rounds `quantity × rounded selling rate` | |
+| INV-09 | GST applies to the subtotal | |
+| INV-10 | Applying a quote clears review state and assembly | |
+| INV-11 | Editing cost, spec, quantity or pricing reopens Draft | |
+| INV-12 | Approval requires priced lines, resolved quantities, unexpired evidence | |
+| INV-13 | `applyRate` refuses mismatched units | |
+| INV-14 | `applyRate` refuses expired evidence | |
+| INV-15 | `normalUnit` aliases resolve correctly and do not over-merge | |
