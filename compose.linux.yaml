@@ -1,0 +1,73 @@
+# Linux VM only: host networking is required for predictable WebRTC/SIP routing.
+# Set APP_DOMAIN, LIVEKIT_DOMAIN and production URLs in .env before starting.
+services:
+  redis:
+    image: redis:7.4-alpine
+    network_mode: host
+    command:
+      ['redis-server', '--bind', '127.0.0.1', '--protected-mode', 'yes', '--appendonly', 'yes']
+    volumes: ['redis-data:/data']
+    restart: unless-stopped
+  livekit:
+    image: livekit/livekit-server:v1.13.7
+    network_mode: host
+    command: ['--config', '/etc/livekit.yaml']
+    volumes: ['./deploy/generated/livekit-linux.yaml:/etc/livekit.yaml:ro']
+    depends_on: [redis]
+    restart: unless-stopped
+  app:
+    build: .
+    network_mode: host
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      HOST: 127.0.0.1
+      DATABASE_PATH: /app/data/nivo.sqlite
+    volumes: ['studio-data:/app/data']
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8787/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  agent:
+    build:
+      context: .
+      dockerfile: agent/Dockerfile
+    network_mode: host
+    env_file: .env
+    environment:
+      PIPER_MODEL_PATH: /app/models/en_US-lessac-medium.onnx
+      AGENT_SPOOL_DIR: /app/data/agent-spool
+    volumes: ['./models:/app/models:ro', 'agent-data:/app/data', 'model-cache:/home/worker/.cache']
+    depends_on: [app, livekit]
+    restart: unless-stopped
+  caddy:
+    image: caddy:2-alpine
+    network_mode: host
+    env_file: .env
+    volumes:
+      ['./deploy/Caddyfile:/etc/caddy/Caddyfile:ro', 'caddy-data:/data', 'caddy-config:/config']
+    depends_on: [app, livekit]
+    restart: unless-stopped
+  sip:
+    profiles: ['telephony']
+    image: ${SIP_IMAGE:-livekit/sip:latest}
+    network_mode: host
+    command: ['--config', '/etc/sip.yaml']
+    volumes: ['./deploy/generated/sip.yaml:/etc/sip.yaml:ro']
+    depends_on: [redis, livekit]
+    restart: unless-stopped
+volumes:
+  redis-data:
+  studio-data:
+  agent-data:
+  model-cache:
+  caddy-data:
+  caddy-config:
