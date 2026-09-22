@@ -99,33 +99,53 @@ Sep 23 00:23:09 2026 data/nivo.sqlite        # after provisioning, unchanged
 Provisioning alone did not touch `data/nivo.sqlite` — confirmed unchanged at that
 point.
 
-**However**, its mtime did later change, to `Sep 23 02:17:16 2026`, at the point in
-Step 2 (Ruling P-01) where the *inherited, previous-session* API process (pid 27573,
-which predates this task and was never under this task's control) was stopped. Root
-cause, verified rather than assumed:
+**However**, when checked again later (during Step 3's suite run, at which point
+no stat had been taken in between), its mtime had changed, to
+`Sep 23 02:17:16 2026`. No `stat` was captured immediately before and after the
+Step 2 `kill` of the *inherited, previous-session* API process (pid 27573, which
+predates this task and was never under this task's control) — that is a real gap
+in the evidence, not something this document should paper over. What follows is
+this task's best explanation for the change, and it is **strongly supported by
+mechanism and by elimination, not by a captured before/after observation at the
+moment of the kill itself**:
 
-- `server/db.ts` opens every database with `PRAGMA journal_mode=WAL`, and
-  `server/app.ts` calls `db.close()` from the app's `SIGTERM`/`SIGINT` handlers.
-- Before it was stopped, pid 27573 (started by the earlier session, presumably
-  against the default `./data/nivo.sqlite`) held a WAL-mode connection open on that
-  file. Sending it the `SIGTERM` that Step 2 explicitly instructs triggered its
-  graceful-shutdown handler, which closed that connection — and an SQLite WAL
-  close performs a checkpoint, folding already-committed WAL frames into the main
-  file and removing the `-wal`/`-shm` files.
-- Evidence this was a checkpoint of **pre-existing** committed data, not a new
-  write introduced by this task: no `-wal`/`-shm` sidecar files remain next to
-  `data/nivo.sqlite` (consistent with a clean checkpoint-on-close); its size is
-  unchanged, 425984 bytes, identical to the untouched `data/backups/nivo-2026-09-22T19-00-15-456Z.sqlite`
-  backup from earlier the same session; and no command run by this task ever
-  opened, queried or wrote `data/nivo.sqlite` — the restarted API was started as
-  `DATABASE_PATH=data/audit.sqlite npm run server`, and no other script in this
-  task references the default path.
-- A byte-level SHA-256 of the live file does differ from that backup, which is
-  expected — a WAL checkpoint can reorder pages on disk even when the checkpointed
-  transactions were already committed and already reflected logically in the
-  backup — so this is not usable as proof of "zero bytes changed," only mtime and
-  size are. This report does not claim byte-for-byte identity, only that this
-  task issued no write against `data/nivo.sqlite`.
+- Mechanism, confirmed by reading the code: `server/db.ts` opens every database
+  with `PRAGMA journal_mode=WAL`; `server/index.ts` registers `SIGTERM`/`SIGINT`
+  handlers that call `app.close()`, which (via Fastify's `onClose`) calls
+  `db.close()` whenever the app was not constructed with an external `options.db`
+  (`server/app.ts` line ~468: `if (!options.db) db.close()`). An SQLite
+  connection's last close in WAL mode performs a checkpoint, folding
+  already-committed WAL frames into the main file and removing the `-wal`/`-shm`
+  sidecars.
+- Elimination, confirmed by reading the test suites rather than assumed: pid
+  27573 predates this task, so if it held a connection open on the default
+  `./data/nivo.sqlite` (its `DATABASE_PATH` was never set by this task, so it can
+  only have used the code's default), that connection's close on `SIGTERM` is the
+  only write-adjacent event this task's timeline contains that touches that path.
+  `server/tests/api.test.ts` opens `database(':memory:')` for every case, so
+  `npm run test:server` cannot have touched it; no other suite (`build`,
+  `check:server`, `npm test`, `test:e2e`, `format:check`, `pytest`) opens a
+  database file at all. No command run by this task ever set `DATABASE_PATH` to
+  anything but `data/audit.sqlite`, and no script in this task references the
+  default path.
+- Circumstantial corroboration, not proof: no `-wal`/`-shm` sidecar files remain
+  next to `data/nivo.sqlite` (consistent with a clean checkpoint-on-close having
+  happened at some point); its size is unchanged at 425984 bytes, identical to
+  `data/backups/nivo-2026-09-22T19-00-15-456Z.sqlite` from earlier the same
+  session. A byte-level SHA-256 of the live file does differ from that backup,
+  which is expected either way — a WAL checkpoint can reorder pages on disk even
+  when the checkpointed transactions were already committed — so the hash
+  mismatch is not evidence for or against this task having written anything.
+
+**What this document does NOT claim:** that the mtime change is verified to have
+happened at the moment of the Step 2 kill. It was observed only as a difference
+between "immediately after provisioning" and "sometime during or before Step 3,"
+a roughly two-hour window with no intermediate checkpoint. The attribution to
+pid 27573's shutdown is inference by elimination plus a code-grounded mechanism,
+not a captured observation, and the missing before/after timestamp at the kill
+itself cannot be recovered after the fact. What this document does claim, and
+what the evidence does support directly: no command executed by this task ever
+opened, queried, or wrote `data/nivo.sqlite` at any point.
 
 Net: this task performed no read or write of its own against `data/nivo.sqlite`
 at any point (the API always ran against `data/audit.sqlite`, per Ruling P-01).
