@@ -63,7 +63,7 @@ export function normalUnit(value: string) {
     )[v] ?? v
   );
 }
-export const isStale = (r: Rate, date = today()) => r.validUntil < date;
+export const isStale = (r: Rate, date = today()) => !!r.validUntil && r.validUntil < date;
 export const unitCompatible = (item: Item, rate: Rate) =>
   normalUnit(item.unit) === normalUnit(rate.unit);
 export function rateCandidates(item: Item, rates: Rate[]) {
