@@ -120,3 +120,12 @@ Live model observation (not a failed safety gate): a repeat extraction after res
 - **Observed:** Login, export and reload work, but Chrome reports blocked `data:font/woff2` requests under `font-src 'self'`. Vite inlines small font assets while the production policy permits only same-origin font URLs.
 - **Expected:** The built typography loads without CSP violations, while preserving the restrictive production policy.
 - **Regression:** The new production browser test fails on the captured CSP violations before a product/build change.
+
+### F-08: Overview declares voice disconnected even when it is ready
+
+- **Severity:** Minor — OPEN
+- **Inventory row:** Outside frozen inventory; overview status wording.
+- **Reproduction:** `NIVO_AUDIT_VOICE=1 npx playwright test --config playwright.audit.config.ts voice.spec.ts --grep 'overview does not'` against a healthy LiveKit/worker pair.
+- **Observed:** The overview hardcodes “Voice calling is not connected”; the same authenticated account's enquiry desk correctly reports Worker connected and can connect a browser call.
+- **Expected:** The overview must not assert a false connection state. Direct users to the enquiry desk where readiness is actually checked.
+- **Regression:** The real-service browser test failed before changing the wording.

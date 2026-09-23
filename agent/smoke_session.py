@@ -9,10 +9,12 @@ from livekit import rtc
 from .local_models import PiperTTS
 
 async def main():
-    login=json.loads(Path('data/voice-test-login.json').read_text())
+    login=json.loads(Path(os.environ.get('NIVO_SMOKE_LOGIN_FILE', 'data/voice-test-login.json')).read_text())
+    assert login['email'] == 'voice-test@example.test' or login['email'].endswith('@audit.local'), 'Synthetic accounts only'
     async with httpx.AsyncClient(base_url='http://127.0.0.1:8787',headers={'X-Nivo-Request':'1'},timeout=60) as client:
         r=await client.post('/api/login',json={'email':login['email'],'password':login['password']});r.raise_for_status()
         status=(await client.get('/api/voice/status')).json()
+        assert not status['outboundEnabled'], 'Disable outbound calling before the synthetic smoke'
         assert status['reachable'] and status['agentVerified'],status
         import uuid
         r=await client.post('/api/calls',json={'mode':'browser','enquiryId':login['enquiryId'],'requestId':str(uuid.uuid4())});r.raise_for_status();call=r.json()
