@@ -7,7 +7,7 @@ import os
 import uuid
 from dotenv import load_dotenv
 from livekit.agents import Agent, AgentSession, AutoSubscribe, JobContext, WorkerOptions, cli, function_tool, RunContext, room_io
-from livekit.plugins import openai, silero
+from livekit.plugins import deepgram, elevenlabs, openai, silero
 from .config import Settings
 from .callbacks import emit, get_call, replay
 
@@ -20,7 +20,6 @@ def build_providers():
         from .local_models import WhisperSTT
         stt = WhisperSTT()
     elif os.getenv('STT_PROVIDER') == 'deepgram':
-        from livekit.plugins import deepgram
         stt = deepgram.STT(model=os.getenv('DEEPGRAM_MODEL', 'nova-3'), language=os.getenv('STT_LANGUAGE', 'multi'))
     else:
         raise ValueError('STT_PROVIDER must be local or deepgram')
@@ -28,10 +27,11 @@ def build_providers():
         from .local_models import PiperTTS
         tts = PiperTTS()
     elif os.getenv('TTS_PROVIDER') == 'deepgram':
-        from livekit.plugins import deepgram
-        tts = deepgram.TTS(model=os.getenv('DEEPGRAM_TTS_MODEL', 'aura-2-andromeda-en'))
+        model = os.getenv('DEEPGRAM_TTS_MODEL', 'flux-meena-en')
+        # Flux Indian voices use /v2/speak and its distinct streaming protocol.
+        provider = deepgram.TTSv2 if model.startswith('flux-') else deepgram.TTS
+        tts = provider(model=model)
     elif os.getenv('TTS_PROVIDER') == 'elevenlabs':
-        from livekit.plugins import elevenlabs
         tts = elevenlabs.TTS(voice_id=os.environ['ELEVENLABS_VOICE_ID'], model=os.getenv('ELEVENLABS_MODEL', 'eleven_multilingual_v2'))
     else:
         raise ValueError('TTS_PROVIDER must be local, deepgram or elevenlabs')
@@ -114,10 +114,14 @@ async def entrypoint(ctx: JobContext):
             return 'Ending the call.'
 
         session = AgentSession(stt=stt, llm=llm, tts=tts, vad=vad,
-            turn_detection='vad', min_endpointing_delay=settings.endpoint_min,
-            max_endpointing_delay=settings.endpoint_max, min_interruption_duration=settings.interruption,
-            min_interruption_words=0, resume_false_interruption=True, false_interruption_timeout=1.5,
-            preemptive_generation=False, user_away_timeout=30)
+            turn_handling={
+                'turn_detection': 'vad',
+                'endpointing': {'min_delay': settings.endpoint_min, 'max_delay': settings.endpoint_max},
+                # Keep interruption detection local; the SDK otherwise selects LiveKit Cloud.
+                'interruption': {'mode': 'vad', 'min_duration': settings.interruption,
+                    'min_words': 0, 'resume_false_interruption': True, 'false_interruption_timeout': 1.5},
+                'preemptive_generation': {'enabled': False},
+            }, user_away_timeout=30)
         @session.on('conversation_item_added')
         def item_added(event):
             item = event.item

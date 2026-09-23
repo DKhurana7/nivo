@@ -19,7 +19,7 @@ The backend, synthetic English WebRTC conversation and real local-model extracti
 
 ## Architecture
 
-React19/TypeScript/Vite frontend, plain CSS, Motion, self-hosted Manrope, original SVG brand/icons, lazy ExcelJS and LiveKit browser SDK. Fastify API uses Node's built-in SQLite module, native scrypt/session cryptography, private workbook BLOBs, call snapshots and audit events. Python LiveKit Agents1.6.5 worker uses STT→LLM→TTS, Silero VAD, optional DPDFNet and signed callbacks. Linux deployment separates app, LiveKit, Redis, worker, Caddy and opt-in SIP.
+React19/TypeScript/Vite frontend, plain CSS, Motion, self-hosted Manrope, original SVG brand/icons, lazy ExcelJS and LiveKit browser SDK. Fastify API uses Node's built-in SQLite module, native scrypt/session cryptography, private workbook BLOBs, call snapshots and audit events. Python LiveKit Agents1.8.2 worker uses STT→LLM→TTS, Silero VAD, optional DPDFNet and signed callbacks. Linux deployment separates app, LiveKit, Redis, worker, Caddy and opt-in SIP.
 
 ```text
 StudioAccess -> /api/session + /api/workspace -> App -> screen callbacks
@@ -221,10 +221,14 @@ The real studio is served locally at `http://127.0.0.1:5178`, using `data/nivo.s
 
 The user selected one-company/one-operator testing and no recurring spend. Netlify Free + Supabase Free is the proposed hosted target; the current SQLite API still needs adaptation, so existing cloud accounts do not make this a configured deployment. `docs/ZERO_BUDGET_PILOT.md` records verified plan limits and LLM credit/free-tier options.
 
-The Python worker supports `TTS_PROVIDER=deepgram` with `DEEPGRAM_TTS_MODEL` defaulting to `aura-2-andromeda-en`, in addition to local Piper and ElevenLabs. Deepgram STT already existed. Provider construction was checked offline; live Deepgram validation awaits credentials. This is the LiveKit plugin pipeline, not Deepgram's separate managed Voice Agent API. Local runtime defaults and `.env` were not changed.
+The active pilot uses Deepgram Nova-3 English STT, Deepgram Flux Meena Indian English TTS (`flux-meena-en`) and local Ollama `qwen3:4b-instruct` for conversation/extraction. Groq is inactive. The user's ignored `.env` selects these providers; private previous settings are in `data/config-backups/before-indian-voice.env`. Deepgram consumes the user's credits; balance is not verified. This is the LiveKit plugin pipeline, not Deepgram's managed Voice Agent API.
+
+LiveKit Python packages are pinned to 1.8.2 for `deepgram.TTSv2`, required by Flux's distinct `/v2/speak` protocol. Aura models still use `deepgram.TTS`. Provider plugins register on the main thread before model construction runs in a background thread; a fresh-process regression covers the startup failure found live. Turn handling explicitly selects local VAD for endpointing and interruptions, avoiding the SDK's automatic LiveKit Cloud interruption service.
+
+A synthetic live conversation passed with five transcript turns, 51.5 seconds of received audio and a validated ₹125/m excluding-GST draft requiring review. The model nevertheless ended after the quote without completing its questions: this smoke pass does not establish conversation quality. Following the VAD configuration fix, Chrome microphone, disclosure/transcript, mute/unmute and end-call checks passed with no cloud interruption request. Seven Python tests and dependency consistency pass. Existing container images predate this upgrade and must be rebuilt before deployment. No telephone was dialled and no real BOQ price was changed. Indian English is configured; Hindi/Hinglish remains untested.
 
 ## Model evaluation and credential verification
 
 `docs/MODEL_EVALUATION.md` records the measured local Qwen 4B latency and accuracy limits. `scripts/benchmark-model.ts` uses the actual voice instructions and extraction validator with synthetic inputs, rejects remote endpoints and saves private local results. `scripts/check-provider-keys.mjs` makes read-only provider metadata requests and never prints keys or generates audio/completions.
 
-The user's Deepgram and Groq keys now authenticate, but neither paid inference nor credit/quota availability has been verified; Gemini remains unconfigured. Runtime model defaults are still local. Groq is not assumed to be free for this account. The preferred next comparison is Gemini free-tier Flash/Flash-Lite, with Deepgram managed Voice Agent as an alternative. Local text generation is fast on the tested Mac, but premature end-call tool selection and missed/invalid extraction make unattended use unsuitable without further work.
+The user's Deepgram and Groq keys authenticate. Deepgram speech now works live; remaining credit/quota availability is unverified. Groq inference is untested and inactive, and Gemini remains unconfigured. The user selected Ollama plus Deepgram for the current listening test. Gemini free-tier Flash/Flash-Lite and Deepgram managed Voice Agent remain possible later comparisons. Local text generation is fast on the tested Mac, but premature end-call tool selection and missed/invalid extraction make unattended use unsuitable without further work.

@@ -2,7 +2,24 @@
 
 Updated 23 September 2026. Read CODEBASE_REFERENCE.md and the newest checkpoint below first. Sections after the checkpoint are historical; their old process IDs and incomplete-work statements are superseded.
 
-## Latest checkpoint: model benchmark and user-provided keys, 23 September 2026
+## Latest checkpoint: Ollama + Deepgram Indian voice ready locally, 23 September 2026
+
+The user selected **Ollama and Deepgram only**, with an Indian voice, to listen through a browser call. The active ignored `.env` now uses Deepgram Nova-3 (`STT_LANGUAGE=en`), Flux Meena Indian English (`DEEPGRAM_TTS_MODEL=flux-meena-en`, `AGENT_LANGUAGE=Indian English`), and Ollama `qwen3:4b-instruct` for conversation/extraction at `http://127.0.0.1:11434/v1`. Groq is inactive. Outbound telephone calls remain disabled; max duration is 180 seconds and inactivity timeout 30 seconds. Original config is preserved privately in `data/config-backups/before-indian-voice.env`; never commit or print it.
+
+LiveKit Python agents/plugins upgraded from 1.6.5 to 1.8.2 for Deepgram `TTSv2` and Flux's `/v2/speak` protocol. Two live-discovered integration issues were fixed: plugin imports must register on the main thread before background provider construction; new SDK defaults otherwise try LiveKit Cloud adaptive interruption (401 with local credentials), so `turn_handling` now explicitly uses local VAD. Fresh-process provider startup has a regression test. Alternative Indian voices Priya/Naveen are documented but untested. Meena catalog: https://developers.deepgram.com/docs/flux-tts/voices.
+
+Validation:
+- Seven Python tests passed; `pip check` found no broken requirements.
+- A synthetic live Deepgram/Ollama session passed: five transcript turns, 51.5 seconds received audio, validated ₹125/m excluding-GST draft with `needsReview: true`. **The LLM still invoked `end_call` prematurely after the quote**, so this is audio/extraction evidence, not reliable autonomous conversation. Prior model accuracy limitations remain open.
+- After disabling cloud interruption, Chrome microphone/disclosure/transcript/mute/unmute/end-call checks passed. Worker log showed no adaptive cloud request on that run.
+- The ephemeral in-memory synthetic API was stopped. Real `data/nivo.sqlite` API restored. `node scripts/verify-local-studio.mjs` passed: 112 null costs, original workbook hash preserved, reload/phone layout, healthy voice readiness. No vendor/enquiry fixture or quotation was added to the real studio.
+- Live speech requests used the user's Deepgram key and may consume credits. Credit balance remains unverified. No paid plan/top-up, public deployment or telephone call was made. Existing container images predate this SDK upgrade; rebuild before deployment.
+
+Running checkpoint (recheck before acting): Vite PID **34555** /5178; real API **66468** /8787; worker **66269** /8081; LiveKit **65961** /7880; Ollama **65960** /11434. Main services were stopped across the session transition and have been restarted. Do not rely on tool-session IDs for persistence.
+
+User path: http://127.0.0.1:5178, owner login in private `data/local-studio-login.json`. Add an internal tester vendor without a phone number, prepare an enquiry for one or two Raisina items, open it and select **Test in browser**. Use headphones, allow microphone access, and play the vendor. Full instructions and restart commands are in `docs/LOCAL_STUDIO.md`. This is ready for supervised listening locally; public zero-budget hosting migration and unattended model reliability are still outstanding. No application UI changes were made in this checkpoint.
+
+## Previous checkpoint: model benchmark and user-provided keys, 23 September 2026
 
 The user has added **their own Deepgram and Groq keys to ignored `.env`**. Both authenticate: read-only model/project requests returned HTTP 200. Groq listed 11 models; Deepgram refused member and balance access with 403. Its project label suggests an email, but account ownership and available credits are unverified. No billable inference/speech request was made. This supersedes the earlier missing-key notes. Current runtime still uses local models; adding keys alone does not switch providers.
 

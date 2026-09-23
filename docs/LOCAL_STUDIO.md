@@ -13,6 +13,14 @@ The Raisina electrical BOQ is already imported:112 unpriced items, including25 r
 
 Ordinary telephone calls require your own SIP carrier, verified caller number, credentials and supported routes. Outbound remains disabled. No vendor was called or quoted during setup; all live voice tests used synthetic speech and test data. Hindi/Hinglish, real handsets and public hosting remain unvalidated.
 
+## Current listening test: Ollama + Deepgram
+
+Configured 23 September 2026: Nova-3 English recognition, **Meena Indian English** speech (`flux-meena-en`), local `qwen3:4b-instruct` conversation and extraction. Deepgram uses your supplied key/credits; Groq is inactive. [Deepgram voice catalog](https://developers.deepgram.com/docs/flux-tts/voices) also lists Priya (`flux-priya-en`) and Naveen (`flux-naveen-en`). Change `DEEPGRAM_TTS_MODEL` in private `.env` and restart the worker to try another voice; only Meena was tested here.
+
+Use headphones, add an internal tester vendor without a phone number, and prepare an enquiry for one or two Raisina items. Open the enquiry and choose **Test in browser**, allow microphone access, then answer the disclosure as the vendor. **End call** stops it. Calls have a three-minute maximum and a 30-second inactivity timeout. This is a local browser call; telephone dialing remains disabled.
+
+A synthetic Deepgram/Ollama conversation and Chrome call controls passed. Ollama still sometimes invokes hangup prematurely, and extraction is not consistently accurate. Review every draft; test prices never enter your BOQ automatically. Keep the Mac awake and the services below running. Your browser audio goes to Deepgram for recognition/speech; the LLM remains on this Mac.
+
 ## Restarting on this Mac
 
 Run from the repository root, in separate terminals, with a Node22.22+ environment where available. Existing validation used22.14. Keep `.env` and `deploy/generated` intact; do not rerun the config generator over them.
