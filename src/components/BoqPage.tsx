@@ -719,6 +719,12 @@ export function BoqPage({
           onClose={() => setDeleting(null)}
         >
           <p>This removes the item from this project's BOQ. The rate library is retained.</p>
+          {project.workbookId && (
+            <p className="notice">
+              Removing this item disables filling the original workbook for the entire project.
+              You can still export a new client quotation or internal costing workbook.
+            </p>
+          )}
           <div className="form-footer">
             <button className="button secondary" onClick={() => setDeleting(null)}>
               Keep item
