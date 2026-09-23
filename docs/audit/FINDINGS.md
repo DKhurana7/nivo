@@ -21,7 +21,7 @@ the two hypotheses below.
 
 ### F-01: A rate saved with a blank `validUntil` is permanently expired and can never be applied
 
-- **Severity:** Minor
+- **Severity:** Minor — FIXED in `36f9490`
 - **Inventory row:** INV-14 (and hypothesis H-01)
 - **Reproduction:** `npm test -- tests/costing.test.ts -t "H-01: a rate with a blank validity must not be permanently expired"`
 - **Observed:** `isStale({ validUntil: '' } as Rate, '2026-09-23')` returns `true`
@@ -34,7 +34,7 @@ the two hypotheses below.
 
 ### F-02: Rate limiting is completely inert — unlimited login brute force and no request throttling at all
 
-- **Severity:** Blocker
+- **Severity:** Blocker — FIXED in `0167ac5`
 - **Inventory row:** API-04 (`POST /api/login` wrong password: "Rejected; no cookie; rate limited on repeat")
 - **Reproduction (in-process):** `node --import tsx --test server/tests/isolation.test.ts` — test "API-04: wrong password is rejected, sets no cookie, and repeated attempts are rate limited" fails: the 11th failed login attempt against a route configured for `max: 10` per 15 minutes still returns 401, not 429.
 - **Reproduction (live server, `data/audit.sqlite`):**
@@ -72,7 +72,7 @@ the two hypotheses below.
 
 ### F-04: Deleting a BOQ item silently disables the original-workbook export for the whole project, with no warning at the point of deletion
 
-- **Severity:** Minor
+- **Severity:** Minor — FIXED in `21b1d99`
 - **Why Minor and not Major:** no data is lost or corrupted — every item, price and specification survives the deletion intact, and both other export paths (client quotation, internal costing workbook) remain fully functional throughout. It is held at Minor rather than downgraded further because the loss of the original-export path is irreversible in practice (recoverable only by re-importing and re-pricing the whole project from scratch), happens silently with no warning at the moment of the triggering action, and is inconsistent with the sibling edit-item path, which does warn before an equivalent side effect — those three factors put it at the high end of Minor.
 - **Inventory row:** EXP-04
 - **Reproduction:** Import a workbook with a mapped rate column, delete any one item via the item-row "Delete" action, confirm "Remove item" in the "Remove this item?" dialog. Open the Export BOQ dialog: "Fill the original workbook (internal)" is now a disabled button for every remaining item in the project, not just the deleted one.
@@ -84,7 +84,7 @@ the two hypotheses below.
 
 ### F-05: Modal keyboard focus does not wrap at its boundaries
 
-- **Severity:** Minor — OPEN
+- **Severity:** Minor — FIXED in `d375f24`
 - **Inventory row:** DLG-01, DLG-10
 - **Reproduction:** `npm run test:e2e -- tests/e2e/modal.spec.ts`; open Project details, focus Save project details, press Tab.
 - **Observed:** Chrome moves focus outside the dialog instead of to Close dialog. The new regression fails before any application change. Native `showModal()` alone does not provide the inventory's explicit keyboard wrapping contract.
@@ -101,3 +101,22 @@ the two hypotheses below.
 - **Scope evidence:** This walkthrough changes settings. The API compares one workspace revision and replaces the entire workspace JSON, so the same restriction also applies to edits of different projects; that extension is a source-derived conclusion, not a separate UI probe.
 - **Expected for Phase 1:** Independent projects and records can be edited by different staff without unrelated revision conflicts; concurrent changes to the same record still require conflict handling.
 - **Resolution:** Row-level persistence and explicit firm/member ownership in Phase 1. Preserve the current refusal and pending-backup recovery during migration.
+
+## Continuation verification after fixes
+
+- F-02: both API-04 and the added global-limit regression failed before `0167ac5`. After the fix all 22 backend tests passed. The synchronous factory remains synchronous; route registration now occurs in a plugin after cookie/rate-limit/helmet boot. Login is limited to 10 per 15 minutes; ordinary requests to 300 per minute per IP. This is not account lockout or a distributed limiter.
+- F-01: H-01 was rerun red before `36f9490`; all 23 domain/workbook tests pass afterward. Required-date form and workspace validation remain in place.
+- F-04: the new browser test failed on the missing warning before `21b1d99`, then passed including cancel preserving original export and removal disabling it.
+- F-05: the new browser test failed at Tab wrapping before `d375f24`, then passed for both project and pricing dialogs, including reverse wrapping and Escape focus restoration.
+- F-06: `tests/e2e/studio.spec.ts` now also proves the conflict using edits to two different projects in two real tabs, with an exported pending backup.
+
+Live model observation (not a failed safety gate): a repeat extraction after restarting Ollama returned HTTP 422 because the proposed evidence was not an exact vendor transcript excerpt. The app displayed the refusal and retained the existing validated draft. The earlier speech smoke had produced a valid draft. Extraction quality and repeatability need Phase 2 evaluation; never weaken evidence validation to hide model failures.
+
+### F-07: Production CSP blocks the bundled small font subset
+
+- **Severity:** Minor — OPEN
+- **Inventory row:** Outside frozen inventory; discovered by deployment artifact verification.
+- **Reproduction:** Build, then `npm run test:e2e -- tests/e2e/production.spec.ts`. This serves the real built assets through Fastify with production cookies and CSP rather than the Vite proxy.
+- **Observed:** Login, export and reload work, but Chrome reports blocked `data:font/woff2` requests under `font-src 'self'`. Vite inlines small font assets while the production policy permits only same-origin font URLs.
+- **Expected:** The built typography loads without CSP violations, while preserving the restrictive production policy.
+- **Regression:** The new production browser test fails on the captured CSP violations before a product/build change.
