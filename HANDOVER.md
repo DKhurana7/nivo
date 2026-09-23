@@ -2,9 +2,24 @@
 
 Updated 23 September 2026. Read CODEBASE_REFERENCE.md and the newest checkpoint below first. Sections after the checkpoint are historical; their old process IDs and incomplete-work statements are superseded.
 
-## Latest checkpoint: Phase 0 complete, 23 September 2026
+## Latest checkpoint: container and recovery verification, 23 September 2026
 
-**Resume here. Phase 0's 12 tasks are complete; the older checkpoint below is historical. The app is ready for supervised local single-operator use, not yet publicly deployed or validated for production telephony.** All 218 frozen inventory rows have recorded results. Six findings were fixed and two structural findings explicitly deferred to Phase 1. The former red regression tests now pass because their product defects were fixed; do not restore the historical broken behavior.
+Phase 0 is preserved in commit `8978b17`. A further release-hardening pass completed after the user requested end-to-end continuation with concise updates. **Public deployment is still pending a host/domain and release scope; no carrier or real vendor call is configured.** The clarification questions remain unanswered.
+
+- Started the existing local Colima VM (2 CPUs, 4 GiB RAM). Both Linux ARM64 images now build successfully: app `nivo-app:release-check` (`a1aa49d9a884`) and worker `nivo-agent:release-check` (`a9bf72f1d35d`). These are local image IDs, not registry releases; x86 builds and the public host are not validated.
+- `node scripts/smoke-container.mjs` passed with a fresh anonymous volume and networking disabled: non-root runtime, built frontend/CSP, Secure cookie login, workspace/file persistence, and complete database backup/restore equality.
+- Found and fixed a fresh-volume launch defect: `/home/worker/.cache` was root-owned, so the non-root worker could not cache models. The direct probe failed with `PermissionError` before the Dockerfile fix. `node scripts/smoke-worker-container.mjs` now verifies writable fresh cache/spool volumes and **six passing Python tests**, without credentials/network.
+- Real Linux audio smoke passed: Piper generated **4.13 seconds** of speech; Whisper returned **“The rate is 125 rupees per meter, excluding tax.”**; real DPDFNet processed it. Total **18.16 seconds**, including first model downloads. This is model execution, not an end-to-end public WebRTC or latency benchmark. Dedicated Docker volume `nivo-release-model-cache` retains the downloaded test models; existing `models/` was mounted read-only. No client data or credentials were passed to test containers.
+- Added `server/backup.ts` and `scripts/restore-server.ts`; upgraded `scripts/backup-server.ts`. Read-only source, integrity/foreign-key checks, private staging, file/directory flushing, and no-overwrite publication protect recovery. Missing source, corrupt/incomplete DB, existing destination and SQLite sidecars are refused. The app image includes both CLI tools.
+- **25 backend tests now pass** (three recovery tests added); backend typecheck passes. Phase 0's 23 domain / 16 browser tests remain the latest results for unchanged application behavior. Formatting and the frozen-inventory gate also pass.
+- `docs/BACKUP_AND_RECOVERY.md` gives native/container backup and recovery procedures. `docs/PRODUCTION_RELEASE.md` now distinguishes verified local containers from outstanding production-host checks.
+- The real Raisina API remains on `data/nivo.sqlite`; its client workspace/workbook were not modified and the native API/voice services were not restarted by container tests. The service table below remains the last verification checkpoint; recheck PIDs before acting.
+
+Next: obtain the host/domain and release audience, then deploy the tested build, rehearse recovery on that host and verify external HTTPS/WebRTC/TURN. Phase 1 membership/persistence/callback work remains as described in the input document. Hindi/Hinglish, carrier routing and extraction-repeatability evaluation remain separate release gates. Keep both this handover and the reference current.
+
+## Completed checkpoint: Phase 0, 23 September 2026
+
+**Phase 0's 12 tasks are complete; the older checkpoint below is historical. The app is ready for supervised local single-operator use, not yet publicly deployed or validated for production telephony.** All 218 frozen inventory rows have recorded results. Six findings were fixed and two structural findings explicitly deferred to Phase 1. The former red regression tests now pass because their product defects were fixed; do not restore the historical broken behavior.
 
 ### Delivered fixes and evidence
 

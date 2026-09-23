@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 libsnd
 COPY agent/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 COPY agent ./agent
-RUN useradd --create-home worker && mkdir -p /app/data /app/models && chown -R worker:worker /app
+RUN useradd --create-home worker && mkdir -p /app/data /app/models /home/worker/.cache && chown -R worker:worker /app /home/worker/.cache
 USER worker
 ENV PYTHONUNBUFFERED=1
 CMD ["python", "-m", "agent.worker", "start"]

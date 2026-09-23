@@ -6,7 +6,9 @@ Updated 23 September 2026. The audited build is suitable for supervised local si
 
 `npm run build` produces `dist/`. The API serves these built assets. A browser test runs that exact build with production CSP and Secure session cookies, signs in, downloads a quotation and reloads the workspace. Small fonts are emitted as files so the restrictive `font-src 'self'` policy remains effective.
 
-The Linux release template is `compose.linux.yaml`, with `Dockerfile`, `agent/Dockerfile` and `deploy/Caddyfile`. Compose parses successfully. The Docker daemon is stopped on this machine, so a full container build and external networking test remain outstanding. The API image uses Node 22.22; local tests used Node 22.14 and Python 3.13.
+The Linux release template is `compose.linux.yaml`, with `Dockerfile`, `agent/Dockerfile` and `deploy/Caddyfile`. Compose parses successfully. Both app and worker images build on Linux ARM64 in the local Colima VM. Isolated container checks pass for non-root execution, app login/CSP/persistence/backup/restore and fresh worker cache/spool permissions; the worker Python suite has six passing tests. Real Linux Piper→Whisper audio and DPDFNet processing also pass. External networking, the actual public host and x86 images remain untested. The API image uses Node 22.22; local tests used Node 22.14 and Python 3.13.
+
+Recovery commands and reproducible container checks are in `docs/BACKUP_AND_RECOVERY.md`. Backend verification now includes three server-recovery tests (25 backend tests pass). Local images are `nivo-app:release-check` and `nivo-agent:release-check`; publish/tag the exact chosen commit only as part of the deployment process.
 
 ## Before public use
 

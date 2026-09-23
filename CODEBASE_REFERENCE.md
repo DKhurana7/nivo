@@ -2,7 +2,7 @@
 
 Updated 23 September 2026 after the completed Phase 0 audit and fixes. **Read the newest checkpoint at the top of HANDOVER.md for exact test results, runtime database selection, processes and remaining work.** This file describes the current product; historical handover sections are explicitly superseded. Implemented and locally tested source is not proof of public production readiness.
 
-**Audit status.** All 12 Phase 0 tasks are complete and all 218 frozen inventory rows have recorded results. Six findings are fixed (rate validity, request throttling, workbook-deletion warning, modal focus, production font CSP and misleading overview voice status); callback authority and workspace-wide concurrency are explicitly deferred to Phase 1. Domain/backend/permanent browser/Python suites pass with 23/22/16/6 tests respectively. Live English browser voice and quotation extraction succeeded; later unverifiable model evidence was safely refused. The running local API has been restored to the real Raisina studio, so audit fixtures require an explicit switch back to `data/audit.sqlite`. See `docs/PRODUCTION_RELEASE.md` for outstanding deployment work.
+**Audit status.** All 12 Phase 0 tasks are complete and all 218 frozen inventory rows have recorded results. Six findings are fixed (rate validity, request throttling, workbook-deletion warning, modal focus, production font CSP and misleading overview voice status); callback authority and workspace-wide concurrency are explicitly deferred to Phase 1. Domain/backend/permanent browser/Python suites pass with 23/25/16/6 tests respectively (including the subsequent recovery tests). Live English browser voice and quotation extraction succeeded; later unverifiable model evidence was safely refused. The running local API has been restored to the real Raisina studio, so audit fixtures require an explicit switch back to `data/audit.sqlite`. See `docs/PRODUCTION_RELEASE.md` for outstanding deployment work.
 
 ## Product and scope
 
@@ -195,7 +195,7 @@ All 218 frozen inventory rows carry results and evidence. The gate checks unchan
 
 Permanent regression coverage includes `tests/e2e/modal.spec.ts`, `workbook-delete.spec.ts`, `production.spec.ts` and the expanded `studio.spec.ts`. Opt-in real-service audits live in `tests/audit/` with `playwright.audit.config.ts`; they require the isolated audit API and fictional accounts. `scripts/verify-audit.mjs` checks the frozen inventory against `f9460ae` and findings' severity-line dispositions.
 
-Latest checks: 23 domain tests, 22 backend tests, 16 permanent browser tests and six Python tests passed; frontend build, backend typecheck, formatting and both npm vulnerability audits passed. Linux Compose syntax passed. Docker images, a public host and external media networking remain untested.
+Latest checks: 23 domain tests, 25 backend tests, 16 permanent browser tests and six Python tests passed; frontend build, backend typecheck, formatting and both npm vulnerability audits passed. Linux Compose syntax passed. Both Linux ARM64 images now build. Isolated container checks pass for production app persistence/recovery and worker cache/spool permissions; real Linux Piper/Whisper/DPDFNet audio also passes. The public host, x86 builds and external media networking remain untested.
 
 ## Delivery limits and next decisions
 
@@ -210,3 +210,9 @@ Run appropriate domain/backend/browser/audio checks after changes, inspect scree
 `docs/PRODUCTION_RELEASE.md` describes the concrete built artifact and outstanding launch checks. `docs/superpowers/specs/2026-09-23-phase1-input.md` lists scoped worker authorization, firm memberships, row-level persistence, reversible migration and preserved invariants; it is input to a future plan, not an approved implementation specification. Host/domain and single-firm versus multi-firm/shared-staff release scope are still pending user decisions.
 
 The real studio is served locally at `http://127.0.0.1:5178`, using `data/nivo.sqlite`. Its retained Raisina workbook remains byte-identical and all 112 costs are unpriced. A verified consistent pre-restart backup is under `data/backups/phase0-release/`. Audit scripts must only target `data/audit.sqlite`; check HANDOVER.md before switching services or running fixtures. Secrets, databases, call evidence, private screenshots and models remain ignored artifacts.
+
+## Container and server recovery tools
+
+`server/backup.ts` performs validated SQLite snapshots from a read-only source, including live WAL commits. It checks integrity, foreign keys and required tables, stages privately, and refuses to overwrite a destination or its SQLite sidecars. `scripts/backup-server.ts` and `scripts/restore-server.ts` expose this as operator CLI tools included in the production app image. `server/tests/backup.test.ts` covers all seven server tables, exact file bytes, live-WAL consistency, invalid sources and overwrite refusal. Use `docs/BACKUP_AND_RECOVERY.md` for commands and a deliberate switch to a recovered database; no recovery is automatically applied to the live studio.
+
+`scripts/smoke-container.mjs` checks the app image on an isolated network and anonymous volume. `scripts/smoke-worker-container.mjs` checks the worker's non-root cache/spool writes and Python suite. `agent/Dockerfile` pre-creates and owns `/home/worker/.cache` so a fresh Compose model-cache volume is writable. Both images and actual local speech models passed on Linux ARM64 through Colima; this does not establish public deployment or multi-architecture support.

@@ -141,7 +141,7 @@ Compose includes app/frontend, SQLite persistent volume, Redis, LiveKit, worker,
 
 Expose TCP 80/443 for Caddy, TCP 7881 and UDP 7882 for WebRTC, and UDP 3478 for TURN. Keep Redis 6379, app 8787, worker health 8081, model endpoints and LiveKit's internal 7880 blocked from the public internet. The supplied TURN configuration is UDP only. Restrictive enterprise/mobile networks may need TURN/TLS with its own certificate and reachable listener; implement the [official production deployment](https://docs.livekit.io/transport/self-hosting/deployment/) before claiming universal network compatibility. HTTPS alone does not solve media connectivity.
 
-SQLite is one persistent server, not a multi-replica database. Stop and back up before schema migrations. Use `node --env-file=.env --import tsx scripts/backup-server.ts /private/backup/location` for a consistent SQLite snapshot including files and calls. Store an encrypted off-machine copy and rehearse restoration. Browser JSON backups cover workspace/workbooks, not account credentials, server audit history or call records.
+SQLite is one persistent server, not a multi-replica database. Stop and back up before schema migrations. Use `node --env-file=.env --import tsx scripts/backup-server.ts /private/backup/location` for a consistent SQLite snapshot including files and calls. Store an encrypted off-machine copy and rehearse restoration. See `BACKUP_AND_RECOVERY.md` for the validated restore-to-new-path command, container operations and tested refusal of existing destinations. Browser JSON backups cover workspace/workbooks, not account credentials, server audit history or call records.
 
 ## Enabling actual telephone calls later
 

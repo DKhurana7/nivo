@@ -11,6 +11,7 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server ./server
 COPY --from=build /app/src/lib ./src/lib
+COPY --from=build /app/scripts/backup-server.ts /app/scripts/restore-server.ts ./scripts/
 COPY package.json ./
 RUN mkdir -p /app/data && chown -R node:node /app/data
 USER node
