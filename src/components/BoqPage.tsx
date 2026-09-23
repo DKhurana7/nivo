@@ -1,3 +1,4 @@
+import { VendorDocumentDialog } from './VendorDocumentDialog';
 import { useState } from 'react';
 import { categories, type Item, type Project, type Workspace, type Rate } from '../lib/types';
 import {
@@ -38,6 +39,7 @@ export function BoqPage({
   onEnquire: () => void;
   onAddRate: (rate: Rate) => void;
 }) {
+  const [documentImport, setDocumentImport] = useState(false);
   const [projectDetails, setProjectDetails] = useState(false);
   const [deleteProject, setDeleteProject] = useState(false);
   const [search, setSearch] = useState('');
@@ -110,6 +112,9 @@ export function BoqPage({
           </p>
         </div>
         <div className="heading-actions">
+          <button className="button secondary" onClick={() => setDocumentImport(true)}>
+            Import vendor quotation
+          </button>
           <button className="button secondary" onClick={() => setImporting(true)}>
             <Icon name="upload" />
             Import Excel
@@ -594,6 +599,20 @@ export function BoqPage({
                     <small>
                       {r.sourceRef} / {r.notes}
                     </small>
+                    {r.document && (
+                      <details>
+                        <summary>Imported source evidence</summary>
+                        <p>
+                          {r.document.filename} · {r.document.location}
+                        </p>
+                        <p>{r.document.excerpt}</p>
+                        <p>
+                          Quoted {r.document.quotedRate} / {r.document.quotedUnit};{' '}
+                          {r.document.taxBasis}; discount {r.document.discount}%;{' '}
+                          {r.document.unitsPerQuote} BOQ units per quoted unit.
+                        </p>
+                      </details>
+                    )}
                     {r.demo && (
                       <div>
                         <Badge>Illustrative rate</Badge>
@@ -718,6 +737,14 @@ export function BoqPage({
             </div>
           </form>
         </Modal>
+      )}
+      {documentImport && (
+        <VendorDocumentDialog
+          workspace={workspace}
+          projectId={project.id}
+          onSave={onAddRate}
+          onClose={() => setDocumentImport(false)}
+        />
       )}
       {exporting && (
         <ExportDialog

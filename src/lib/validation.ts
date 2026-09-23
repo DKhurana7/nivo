@@ -109,7 +109,31 @@ export function validateWorkspace(value: unknown): value is Workspace {
         str(r.location) &&
         str(r.notes) &&
         str(r.vendorId) &&
-        str(r.sourceRef),
+        str(r.sourceRef) &&
+        (r.document === undefined ||
+          (!!r.document &&
+            [
+              'fileId',
+              'filename',
+              'sha256',
+              'location',
+              'excerpt',
+              'projectId',
+              'itemId',
+              'quotedDescription',
+              'quotedUnit',
+            ].every((k) => str(r.document![k as keyof NonNullable<typeof r.document>])) &&
+            /^[a-f0-9]{64}$/.test(r.document.sha256) &&
+            ['excluding-gst', 'including-gst'].includes(r.document.taxBasis) &&
+            [
+              r.document.quotedRate,
+              r.document.gst,
+              r.document.discount,
+              r.document.unitsPerQuote,
+            ].every(num) &&
+            r.document.gst <= 100 &&
+            r.document.discount <= 100 &&
+            r.document.unitsPerQuote > 0)),
     ) &&
     Array.isArray(w.enquiries) &&
     w.enquiries.every(

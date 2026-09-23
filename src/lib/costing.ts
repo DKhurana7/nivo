@@ -77,10 +77,12 @@ export function rateCandidates(item: Item, rates: Rate[]) {
     .filter((r) => r.category === item.category && unitCompatible(item, r))
     .map((rate) => ({
       rate,
-      score: `${rate.description} ${rate.specification} ${rate.brand ?? ''} ${rate.model ?? ''}`
-        .toLowerCase()
-        .split(/\W+/)
-        .filter((w) => words.has(w)).length,
+      score:
+        (rate.document?.itemId === item.id ? 100 : 0) +
+        `${rate.description} ${rate.specification} ${rate.brand ?? ''} ${rate.model ?? ''}`
+          .toLowerCase()
+          .split(/\W+/)
+          .filter((w) => words.has(w)).length,
     }))
     .sort((a, b) => b.score - a.score)
     .map((r) => r.rate);

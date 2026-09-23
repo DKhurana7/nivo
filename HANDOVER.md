@@ -1,8 +1,26 @@
 # Active development handover
 
-Updated 23 September 2026. Read CODEBASE_REFERENCE.md and the newest checkpoint below first. Sections after the checkpoint are historical; their old process IDs and incomplete-work statements are superseded.
+Updated 24 September 2026. Read CODEBASE_REFERENCE.md and the newest checkpoint below first. Sections after the checkpoint are historical; their old process IDs and incomplete-work statements are superseded.
 
-## Latest checkpoint: Excel preview and brand/vendor costing, 23 September 2026
+## Latest checkpoint: vendor Excel/PDF quotation import, 24 September 2026
+
+The latest request was to extract supplier rates from PDF/Excel, match them to BOQ requirements and select the correct rate. Implemented a **reviewed import workflow** in BOQ workbench, Rate library and enquiry detail. This completes the local feature; matching is advisory, not a guarantee of product equivalence or correct commercial scope. No real vendor file was provided, so verification used synthetic documents. The real Raisina workspace was not repriced.
+
+- `.xlsx` and selectable-text `.pdf`, up to 10 MB. Local ExcelJS/PDF.js parsing, sheet/page/header selection, source-row preview and explicit column mapping. Rate suggestions avoid quantity/amount/MRP. Ambiguous numeric strings remain blank; formula-derived prices and PDF alignment require verification. Scans/photos are refused with an actionable message; no OCR or paid extraction service.
+- Choose an offer and explicitly match a BOQ item. Word-overlap suggestions warn about unit, brand/model, dimensions and installation scope. Confirm vendor, specification, GST basis, discount, pack conversion, dates, delivery location and terms. Review acknowledgement clears when inputs change. Example tested: 1180 including 18% GST, 10% discount, 90 m coil = 10/m excluding GST.
+- Save one reviewed offer at a time, preserving original bytes, SHA-256, source address/excerpt and calculation inputs. Saving never changes BOQ cost; use Find rate to apply separately. The matched item receives suggestion priority. Same vendor/file/source row/project/item duplicates are refused; alternatives remain separate offers. Enquiry imports restrict project/vendor/items and keep incomplete replies Awaiting quote.
+- Original downloads live in Rate library detail and verify hashes. Both local and studio storage work; studio source uploads retain CSRF, tenant predicates, 10 MB upload/200 MB storage limits. Full v1 backups include original quotation files, refuse missing references and verify quotation fingerprints on restore. Complete legacy backups remain compatible; JSON restore retains its existing 50 MB limit. No schema migration or provider configuration change.
+- The added BOQ action initially caused phone overflow; wrapping was fixed and the full responsive regression now passes. Desktop/phone import and review screenshots were inspected.
+
+Validation: **35 domain tests, 27 backend tests, 22 permanent browser tests passed**; frontend build, backend typecheck, formatting, diff checks and frozen-inventory gate passed. Production dependency audit found **0 vulnerabilities**. The production-browser test loads the local PDF worker under actual CSP, saves a PDF/rate through authenticated APIs, compares original bytes and reloads. Other browser tests cover GST/pack conversion, review acknowledgement, duplicate blocking, explicit application, exact source downloads/backup/restore, phone PDF parsing, scan refusal and partial enquiry responses. No voice model code changed or new billable audio test was run; seven Python tests remain the previous voice checkpoint, not a new run. Build retains the known large lazy-chunk warning.
+
+`node scripts/verify-local-studio.mjs` passed read-only against **real `data/nivo.sqlite`**: 112 unpriced items, source workbook hash unchanged, reload, phone layout and five-sheet original export preview; signed voice health is green. API/voice services had stopped between sessions and were restored without changing private configuration. Last verified PIDs: **Vite34555:5178, API96829:8787, LiveKit96852:7880, Ollama96853:11434, worker96875:8081**. Recheck before stopping services. User URL: http://127.0.0.1:5178; private login stays in `data/local-studio-login.json`. Deepgram Meena + Ollama configuration is unchanged, no carrier call enabled.
+
+New source: `src/lib/vendor-document.ts`, `src/lib/document-storage.ts`, `src/components/VendorDocumentDialog.tsx`; provenance in Rate/validation, integration in BOQ/rates/enquiries, backup source retention and API PDF signature support. New tests: `tests/vendor-document.test.ts`, `tests/e2e/vendor-document.spec.ts`, `tests/e2e/quotation-fixture.ts`; expanded production/API tests. Read CODEBASE_REFERENCE.md and docs/LOCAL_STUDIO.md for architecture and operator steps.
+
+Remaining boundaries: scanned-PDF OCR, arbitrary wrapped/rotated PDF layout reliability, automatic semantic equivalence and automatic bulk pricing are not implemented. Request a cleaner Excel copy where alignment is unreliable. Public zero-budget hosting migration and unattended voice reliability remain unfinished earlier goals; no public deployment, merge or push. Local container images predate this change and need rebuilding before deployment. Branch remains `phase0-audit`; preserve the frozen audit inventory and the real studio database.
+
+## Previous checkpoint: Excel preview and brand/vendor costing, 23 September 2026
 
 The user requested a filled Excel BOQ with filling options/preview/formatting, then expanded scope to handling item brands and vendor-specific costs throughout the application. Both are implemented locally; no public deployment or real-price entry occurred.
 

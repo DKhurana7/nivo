@@ -65,3 +65,16 @@ Enquiry responses and voice drafts can retain several offers for the same BOQ it
 **Fill the original workbook (internal)** retains the client's sheets, layout and formulas; check every sheet, including hidden ones, before forwarding it. Unpriced source cells and amount formulas stay intact. Formulas must recalculate in Excel. If brand/model columns were mapped during import, selected product details are filled there; otherwise the dialog warns they will be absent. Use the fresh client quotation to include those details. The source file itself is never changed.
 
 The preview shows the prepared download's cell contents, with sheet selection and paginated rows. It is not a pixel-perfect Excel viewer; drawings and source formatting may look different. Long specifications remain in the file, but Excel row-height limits can require expanding/editing layout before printing. The internal costing workbook includes vendor and purchase-cost information for your own review.
+
+## Importing vendor Excel and PDF quotations
+
+From **BOQ workbench → Import vendor quotation** (also in Rate library or an open enquiry):
+
+1. Choose the vendor and upload `.xlsx` or a selectable-text `.pdf` (up to 10 MB). Convert legacy `.xls` to `.xlsx`. Scans/photos need a searchable PDF or Excel copy; OCR is not included.
+2. Choose the sheet/page and header. Inspect the source rows and map description, unit and **unit rate**, plus optional brand/model/specification. Never use the amount, quantity or MRP column as a net unit rate. Check other pages for commercial terms.
+3. Extract rows, choose an offer and explicitly select its BOQ item. Suggestions compare words, units, dimensions and product identity; warnings do not certify equivalence. Verify wrapped PDF text and missing fields against **Open original copy**.
+4. Confirm brand/model, specification, GST basis, any additional discount and BOQ units per quoted unit. Example: ₹1,180 inclusive of 18% GST, less 10% discount, per 90 m coil gives ₹10/m excluding GST. Do not deduct a discount already included in the net rate. Freight, installation and conditions require manual verification.
+5. Enter quotation date, current validity, delivery location and terms. Check the review acknowledgement and save. The dated offer and original file are retained; the BOQ cost stays unchanged until you use **Find rate → Apply rate**.
+6. In **Rate library**, open the offer to see its source row, reviewed calculation and **Download original quotation**. Full backups include quotation originals and verify their fingerprints on restore. A missing source prevents a purportedly complete backup.
+
+Each row is reviewed separately. Reimporting the same source row for the same vendor/project/item is blocked. Enquiry imports restrict the item list to that enquiry and keep partial responses awaiting quotes. Parsing runs on this device without an LLM or paid extraction service. No actual vendor document has yet been supplied for format-specific validation; complex/wrapped/rotated PDF layouts can need manual mapping or a cleaner Excel copy.

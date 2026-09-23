@@ -76,6 +76,31 @@ test('private studios, CSRF, revision conflicts, files and sessions', async () =
     const auth2 = { ...headers, cookie: `nivo_session=${login2.cookies[0].value}` };
     assert.equal((await app.inject({ url: '/api/files/file-1', headers: auth2 })).statusCode, 404);
     assert.equal((await app.inject({ url: '/api/workspace', headers: auth2 })).json().revision, 0);
+    const pdf = Buffer.from('%PDF-1.4 synthetic quotation');
+    const pdfRequest = {
+      method: 'PUT' as const,
+      url: '/api/files/vendor-pdf',
+      headers: { ...auth, 'content-type': 'application/octet-stream' },
+      payload: pdf,
+    };
+    assert.equal(
+      (
+        await app.inject({
+          ...pdfRequest,
+          headers: { 'content-type': 'application/octet-stream', cookie: auth.cookie },
+        })
+      ).statusCode,
+      403,
+    );
+    assert.equal((await app.inject(pdfRequest)).statusCode, 200);
+    assert.deepEqual((await app.inject({ url: pdfRequest.url, headers: auth })).rawPayload, pdf);
+    assert.equal((await app.inject({ url: pdfRequest.url, headers: auth2 })).statusCode, 404);
+    assert.equal(
+      (await app.inject({ ...pdfRequest, payload: Buffer.from('<script>bad</script>') }))
+        .statusCode,
+      400,
+    );
+
     assert.equal(
       (
         await app.inject({

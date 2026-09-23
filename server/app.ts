@@ -204,9 +204,9 @@ export function makeApp(
       if (
         !/^[\w-]{1,80}$/.test(id) ||
         !Buffer.isBuffer(bytes) ||
-        bytes.subarray(0, 2).toString() !== 'PK'
+        (bytes.subarray(0, 2).toString() !== 'PK' && bytes.subarray(0, 5).toString() !== '%PDF-')
       )
-        throw fail('A valid XLSX workbook is required.');
+        throw fail('An XLSX workbook or PDF quotation is required.');
       const usage = db
         .prepare('SELECT COALESCE(SUM(length(bytes)),0) AS n FROM files WHERE user_id=? AND id<>?')
         .get(u.id, id) as any;

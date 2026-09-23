@@ -1,3 +1,5 @@
+import { VendorDocumentDialog } from './VendorDocumentDialog';
+import { downloadRateDocument } from '../lib/document-storage';
 import { useState } from 'react';
 import type { Project, Rate, Vendor, Workspace } from '../lib/types';
 import { categories } from '../lib/types';
@@ -316,6 +318,7 @@ export function RatesPage({
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All categories');
   const [adding, setAdding] = useState(false);
+  const [importingDocument, setImportingDocument] = useState(false);
   const [detail, setDetail] = useState<Rate | null>(null);
   const rates = workspace.rates.filter(
     (r) =>
@@ -331,10 +334,19 @@ export function RatesPage({
           <h1>Rate library</h1>
           <p>Your own pricing knowledge, with the evidence attached.</p>
         </div>
-        <button className="button primary" onClick={() => setAdding(true)}>
-          <Icon name="plus" />
-          Record quotation
-        </button>
+        <div className="heading-actions">
+          <button
+            className="button secondary"
+            disabled={!workspace.projects.length}
+            onClick={() => setImportingDocument(true)}
+          >
+            Import vendor quotation
+          </button>
+          <button className="button primary" onClick={() => setAdding(true)}>
+            <Icon name="plus" />
+            Record quotation
+          </button>
+        </div>
       </div>
       <div className="library-intro">
         <div>
@@ -446,6 +458,13 @@ export function RatesPage({
           }}
         />
       )}{' '}
+      {importingDocument && (
+        <VendorDocumentDialog
+          workspace={workspace}
+          onSave={onAdd}
+          onClose={() => setImportingDocument(false)}
+        />
+      )}
       {detail && (
         <Modal title={detail.description} subtitle="Rate evidence" onClose={() => setDetail(null)}>
           <div className="rate-detail-price">
@@ -477,6 +496,29 @@ export function RatesPage({
             <dt>Terms</dt>
             <dd>{detail.notes}</dd>
           </dl>
+          {detail.document && (
+            <section className="document-evidence">
+              <h3>Original quotation evidence</h3>
+              <p>
+                {detail.document.filename} · {detail.document.location}
+              </p>
+              <p>{detail.document.excerpt}</p>
+              <p>
+                Quoted {detail.document.quotedRate} / {detail.document.quotedUnit};{' '}
+                {detail.document.taxBasis}; GST {detail.document.gst}%; discount{' '}
+                {detail.document.discount}%; {detail.document.unitsPerQuote} BOQ units per quoted
+                unit.
+              </p>
+              <button
+                className="button secondary"
+                onClick={() =>
+                  void downloadRateDocument(detail).catch((e) => notify((e as Error).message))
+                }
+              >
+                Download original quotation
+              </button>
+            </section>
+          )}
           {detail.demo && (
             <p className="notice">
               This is illustrative sample data, not a current market quotation.

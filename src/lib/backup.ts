@@ -1,3 +1,4 @@
+import { hashDocument } from './vendor-document';
 import { remote, fetchWorkbook, uploadWorkbook } from './api';
 import { get, set } from 'idb-keyval';
 import type { Workspace } from './types';
@@ -5,15 +6,15 @@ import { validateWorkspace } from './storage';
 import { downloadBlob, workbookKey } from './spreadsheet';
 export async function exportBackup(workspace: Workspace) {
   const workbooks: Record<string, string> = {};
-  for (const p of workspace.projects) {
-    if (!p.workbookId) continue;
+  for (const workbookId of sourceIds(workspace)) {
     const bytes = remote
-      ? await fetchWorkbook(p.workbookId)
-      : await get<ArrayBuffer>(workbookKey(p.workbookId));
-    if (!bytes) continue;
+      ? await fetchWorkbook(workbookId)
+      : await get<ArrayBuffer>(workbookKey(workbookId));
+    if (!bytes)
+      throw new Error('A source file is missing. Restore it before creating a complete backup.');
     let binary = '';
     for (const byte of new Uint8Array(bytes)) binary += String.fromCharCode(byte);
-    workbooks[p.workbookId] = btoa(binary);
+    workbooks[workbookId] = btoa(binary);
   }
   downloadBlob(
     JSON.stringify({ format: 'nivo-backup-v1', workspace, workbooks }, null, 2),
@@ -32,15 +33,20 @@ export async function readBackup(file: File) {
   )
     throw new Error('This is not a valid Nivo v1 backup.');
   const decoded: { key: string; bytes: ArrayBuffer }[] = [];
-  for (const p of (data.workspace as Workspace).projects) {
-    if (!p.workbookId || !data.workbooks[p.workbookId]) continue;
-    if (typeof data.workbooks[p.workbookId] !== 'string')
+  for (const workbookId of sourceIds(data.workspace)) {
+    if (!data.workbooks[workbookId])
+      throw new Error('Backup is missing a referenced source document.');
+    if (typeof data.workbooks[workbookId] !== 'string')
       throw new Error('Invalid source workbook in backup.');
-    const binary = atob(data.workbooks[p.workbookId]);
-    decoded.push({
-      key: workbookKey(p.workbookId),
-      bytes: Uint8Array.from(binary, (char) => char.charCodeAt(0)).buffer,
-    });
+    const binary = atob(data.workbooks[workbookId]);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0)).buffer;
+    for (const rate of (data.workspace as Workspace).rates.filter(
+      (r) => r.document?.fileId === workbookId,
+    )) {
+      if ((await hashDocument(bytes)) !== rate.document!.sha256)
+        throw new Error('Backup quotation fingerprint does not match its source file.');
+    }
+    decoded.push({ key: workbookKey(workbookId), bytes });
   }
   return { workspace: data.workspace as Workspace, decoded };
 }
@@ -49,4 +55,15 @@ export async function restoreWorkbooks(decoded: { key: string; bytes: ArrayBuffe
     if (remote) await uploadWorkbook(entry.key.replace('nivo.workbook.', ''), entry.bytes);
     else await set(entry.key, entry.bytes);
   }
+}
+
+export function sourceIds(workspace: Workspace) {
+  return [
+    ...new Set(
+      [
+        ...workspace.projects.map((p) => p.workbookId),
+        ...workspace.rates.map((r) => r.document?.fileId),
+      ].filter((id): id is string => !!id),
+    ),
+  ];
 }

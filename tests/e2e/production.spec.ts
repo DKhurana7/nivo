@@ -1,3 +1,4 @@
+import { quotationPdf } from './quotation-fixture';
 import { test, expect } from '@playwright/test';
 import { makeApp } from '../../server/app';
 import { database, addUser } from '../../server/db';
@@ -48,5 +49,35 @@ test('built app works with production cookies and CSP and downloads a quotation'
   expect((await downloading).suggestedFilename()).toContain('Aranya');
   await page.reload();
   await expect(page.locator('main h1')).toContainText('Aranya');
+  await page.getByRole('button', { name: 'Import vendor quotation', exact: true }).click();
+  await page
+    .getByLabel('Vendor PDF or Excel file')
+    .setInputFiles({ name: 'production.pdf', mimeType: 'application/pdf', buffer: quotationPdf() });
+  await expect(page.getByLabel('Unit rate column')).toHaveValue('3');
+  await page.getByRole('button', { name: 'Extract quotation rows', exact: true }).click();
+  await expect(page.locator('.document-offer')).toContainText('1,180');
+  await page.getByRole('combobox', { name: 'Quotation vendor', exact: true }).selectOption('v1');
+  await page.locator('.document-offer').click();
+  await page.getByLabel('Matched BOQ item').selectOption(seedWorkspace().projects[0].items[0].id);
+  await page.getByLabel('Quoted tax basis').selectOption('excluding-gst');
+  await page.getByLabel('Document quotation date').fill('2026-09-23');
+  await page.getByLabel('Document valid until').fill('2099-12-31');
+  await page.getByLabel('Verified commercial terms').fill('Synthetic production storage test only');
+  await page.getByRole('checkbox', { name: /I checked the original/ }).check();
+  await page.getByRole('button', { name: 'Save reviewed quotation' }).click();
+  await expect(
+    page.getByText('Quotation saved with its source file.', { exact: false }),
+  ).toBeVisible();
+  const stored = () =>
+    JSON.parse((db.prepare('SELECT data FROM workspaces WHERE user_id=?').get(id) as any).data);
+  await expect.poll(() => stored().rates[0].document?.filename).toBe('production.pdf');
+  const bytes = (
+    db
+      .prepare('SELECT bytes FROM files WHERE user_id=? AND id=?')
+      .get(id, stored().rates[0].document.fileId) as any
+  ).bytes;
+  expect(Buffer.from(bytes)).toEqual(quotationPdf());
+  await page.reload();
+  expect(stored().rates[0].cost).toBe(1180);
   expect(violations).toEqual([]);
 });

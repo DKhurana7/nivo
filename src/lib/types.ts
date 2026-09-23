@@ -75,6 +75,22 @@ export interface Vendor {
   demo?: boolean;
 }
 export interface Rate {
+  document?: {
+    fileId: string;
+    filename: string;
+    sha256: string;
+    location: string;
+    excerpt: string;
+    projectId: string;
+    itemId: string;
+    quotedDescription: string;
+    quotedUnit: string;
+    quotedRate: number;
+    taxBasis: 'excluding-gst' | 'including-gst';
+    gst: number;
+    discount: number;
+    unitsPerQuote: number;
+  };
   brand?: string;
   model?: string;
   id: string;

@@ -428,7 +428,9 @@ main {
 .heading-actions {
   display: flex;
   gap: 10px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .button {
   display: inline-flex;
@@ -2631,7 +2633,7 @@ tbody tr:hover {
     gap: 8px;
   }
   .heading-actions .button {
-    flex: 1;
+    flex: 1 1 140px;
     font-size: 10px;
     padding: 9px 11px;
   }
@@ -3188,4 +3190,74 @@ tbody tr:hover {
 .capture-items small {
   display: block;
   margin-top: 4px;
+}
+
+.document-controls {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.document-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.document-source {
+  max-height: 300px;
+  border: 1px solid #d6dfe4;
+}
+.document-source td {
+  min-width: 100px;
+  max-width: 320px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.document-offers,
+.document-review {
+  border-top: 1px solid #d6dfe4;
+  margin-top: 24px;
+  padding-top: 16px;
+}
+.document-offer {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: inherit;
+  border: 1px solid #d6dfe4;
+  padding: 12px;
+  text-align: left;
+  margin-bottom: 8px;
+}
+.document-offer strong,
+.document-offer span,
+.document-offer small {
+  display: block;
+  margin-bottom: 4px;
+}
+.document-offer[aria-pressed='true'] {
+  background: #e9eef7;
+  border-color: #315bdb;
+}
+.document-evidence {
+  margin: 14px 0;
+  padding: 14px;
+  background: #e9eef2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.document-review details {
+  padding: 12px;
+  border: 1px solid #d6dfe4;
+  margin: 14px 0;
+}
+.document-cost {
+  font-weight: 600;
+  padding: 14px 0;
 }

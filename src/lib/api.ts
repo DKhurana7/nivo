@@ -40,11 +40,11 @@ export async function uploadWorkbook(id: string, bytes: ArrayBuffer) {
     headers: { 'Content-Type': 'application/octet-stream', 'X-Nivo-Request': '1' },
     body: bytes,
   });
-  if (!r.ok) throw new Error('The original workbook could not be saved to your studio.');
+  if (!r.ok) throw new Error('The original source file could not be saved to your studio.');
 }
 export async function fetchWorkbook(id: string) {
   const r = await fetch(`/api/files/${encodeURIComponent(id)}`);
-  if (!r.ok) throw new Error('The original workbook could not be retrieved.');
+  if (!r.ok) throw new Error('The original source file could not be retrieved.');
   return r.arrayBuffer();
 }
 let workspaceFlush: () => Promise<void> = async () => {};

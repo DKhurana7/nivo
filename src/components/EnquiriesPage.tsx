@@ -1,3 +1,4 @@
+import { VendorDocumentDialog } from './VendorDocumentDialog';
 import { VoiceDesk } from './VoiceDesk';
 import { remote } from '../lib/api';
 import { useState } from 'react';
@@ -20,6 +21,7 @@ export function EnquiriesPage({
   onRate: (r: Rate, enquiry: Enquiry) => void;
   notify: (s: string) => void;
 }) {
+  const [importingDocument, setImportingDocument] = useState(false);
   const [creating, setCreating] = useState(false);
   const [projectId, setProjectId] = useState(selectedProject || workspace.projects[0]?.id || '');
   const [vendorId, setVendorId] = useState(workspace.vendors[0]?.id ?? '');
@@ -278,6 +280,9 @@ export function EnquiriesPage({
             <div className="brief-preview">{brief(detail)}</div>
           </details>
           <h3 className="preview-title">Record the response</h3>
+          <button className="button secondary" onClick={() => setImportingDocument(true)}>
+            Import vendor quotation
+          </button>
           <p className="muted small-text">
             Capture confirmed quotation details for each item. Save original conversation notes
             below for reference.
@@ -356,6 +361,29 @@ export function EnquiriesPage({
             </div>
           </form>
         </Modal>
+      )}
+      {importingDocument && detail && (
+        <VendorDocumentDialog
+          workspace={workspace}
+          projectId={detail.projectId}
+          vendorId={detail.vendorId}
+          itemIds={detail.itemIds}
+          onClose={() => setImportingDocument(false)}
+          onSave={(r) => {
+            if (r.document?.projectId !== detail.projectId || r.vendorId !== detail.vendorId) {
+              notify('Use this enquiry’s project and vendor when importing its quotation.');
+              return;
+            }
+            const quotes = [...(detail.quotes ?? []), { itemId: r.document!.itemId, rateId: r.id }];
+            onRate(r, {
+              ...detail,
+              status: detail.itemIds.every((id) => quotes.some((q) => q.itemId === id))
+                ? 'Quote received'
+                : 'Awaiting quote',
+              quotes,
+            });
+          }}
+        />
       )}
       {capture && (
         <RateForm
