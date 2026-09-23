@@ -113,7 +113,11 @@ test('API-11: a second account cannot read the first account files by id', async
       url: '/api/files/wb-alpha-1',
       headers: beta,
     });
-    assert.equal(theft.statusCode, 404, 'another account must not receive the file, not even a 403 that confirms existence vs 404 that does not');
+    assert.equal(
+      theft.statusCode,
+      404,
+      'another account must not receive the file, not even a 403 that confirms existence vs 404 that does not',
+    );
   } finally {
     await app.close();
     db.close();
@@ -136,7 +140,18 @@ test('API-13/API-14: a second account cannot list or fetch the first account cal
     const callId = randomUUID();
     db.prepare(
       'INSERT INTO calls(id,user_id,enquiry_id,mode,status,room,created,updated,brief,request_id) VALUES(?,?,?,?,?,?,?,?,?,?)',
-    ).run(callId, aliceId, 'e1', 'browser', 'ended', 'room-1', Date.now(), Date.now(), '{}', 'req-1');
+    ).run(
+      callId,
+      aliceId,
+      'e1',
+      'browser',
+      'ended',
+      'room-1',
+      Date.now(),
+      Date.now(),
+      '{}',
+      'req-1',
+    );
 
     // If tenant scoping were removed, bob's list would include alice's call.
     const bobList = await app.inject({ method: 'GET', url: '/api/calls', headers: bob });
@@ -150,7 +165,11 @@ test('API-13/API-14: a second account cannot list or fetch the first account cal
     const bobGet = await app.inject({ method: 'GET', url: `/api/calls/${callId}`, headers: bob });
     assert.equal(bobGet.statusCode, 404, 'a call id belonging to another account must not resolve');
 
-    const aliceGet = await app.inject({ method: 'GET', url: `/api/calls/${callId}`, headers: alice });
+    const aliceGet = await app.inject({
+      method: 'GET',
+      url: `/api/calls/${callId}`,
+      headers: alice,
+    });
     assert.equal(aliceGet.statusCode, 200);
   } finally {
     await app.close();
@@ -217,7 +236,11 @@ test('API-09: an invalid workspace body is rejected and not persisted', async ()
     assert.equal(bad.statusCode, 400);
 
     const after = await app.inject({ method: 'GET', url: '/api/workspace', headers: dave });
-    assert.equal(JSON.parse(after.body).revision, 0, 'the rejected write must not have advanced the revision');
+    assert.equal(
+      JSON.parse(after.body).revision,
+      0,
+      'the rejected write must not have advanced the revision',
+    );
   } finally {
     await app.close();
     db.close();
@@ -243,7 +266,11 @@ test('API-26: a mutation without the same-origin header is rejected', async () =
       headers: headersNoOrigin,
       payload: { revision: 0, workspace: seedWorkspace() },
     });
-    assert.equal(res.statusCode, 403, 'omitting x-nivo-request must be rejected, not silently accepted');
+    assert.equal(
+      res.statusCode,
+      403,
+      'omitting x-nivo-request must be rejected, not silently accepted',
+    );
 
     const after = await app.inject({ method: 'GET', url: '/api/workspace', headers: erin });
     assert.equal(JSON.parse(after.body).revision, 0, 'the rejected write must not have persisted');
@@ -272,7 +299,10 @@ test('API-27: authenticated routes without a cookie return 401 and no data', asy
       const res = await app.inject({ ...req, headers });
       assert.equal(res.statusCode, 401, `${req.method} ${req.url} without a cookie must be 401`);
       const body = JSON.parse(res.body);
-      assert.ok(!('workspace' in body) && !('id' in body), `${req.url} must not leak partial data alongside the 401`);
+      assert.ok(
+        !('workspace' in body) && !('id' in body),
+        `${req.url} must not leak partial data alongside the 401`,
+      );
     }
   } finally {
     await app.close();
@@ -366,7 +396,14 @@ test('API-10: the 10 MB file body limit is enforced', async () => {
 // ---------------------------------------------------------------------------
 
 test('API-16: phone mode is refused while ENABLE_OUTBOUND_CALLS is not true', async () => {
-  const keys = ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'AGENT_CALLBACK_SECRET', 'ENABLE_OUTBOUND_CALLS', 'LIVEKIT_SIP_TRUNK_ID'];
+  const keys = [
+    'LIVEKIT_URL',
+    'LIVEKIT_API_KEY',
+    'LIVEKIT_API_SECRET',
+    'AGENT_CALLBACK_SECRET',
+    'ENABLE_OUTBOUND_CALLS',
+    'LIVEKIT_SIP_TRUNK_ID',
+  ];
   const old = keys.map((k) => process.env[k]);
   const db = database(':memory:');
   const uid = addUser(db, 'jack@example.test', 'jack private password', 'Jack Studio');
@@ -451,12 +488,27 @@ test('API-18: GET /api/agent/calls/:id requires a valid HMAC and never returns c
     },
   ];
   const brief = callBrief(w, enquiryId);
-  assert.equal(JSON.stringify(brief).includes(String(pricedItem.cost)), false, 'callBrief itself must already exclude cost');
+  assert.equal(
+    JSON.stringify(brief).includes(String(pricedItem.cost)),
+    false,
+    'callBrief itself must already exclude cost',
+  );
 
   const id = randomUUID();
   db.prepare(
     'INSERT INTO calls(id,user_id,enquiry_id,mode,status,room,created,updated,brief,request_id) VALUES(?,?,?,?,?,?,?,?,?,?)',
-  ).run(id, uid, enquiryId, 'browser', 'starting', 'room', Date.now(), Date.now(), JSON.stringify(brief), 'req');
+  ).run(
+    id,
+    uid,
+    enquiryId,
+    'browser',
+    'starting',
+    'room',
+    Date.now(),
+    Date.now(),
+    JSON.stringify(brief),
+    'req',
+  );
   const app = makeApp({ db });
   try {
     const unauthed = await app.inject({ method: 'GET', url: `/api/agent/calls/${id}` });
@@ -464,7 +516,9 @@ test('API-18: GET /api/agent/calls/:id requires a valid HMAC and never returns c
 
     const url = `/api/agent/calls/${id}`;
     const stamp = String(Math.floor(Date.now() / 1000));
-    const sig = createHmac('sha256', process.env.AGENT_CALLBACK_SECRET!).update(`${stamp}.${url}`).digest('hex');
+    const sig = createHmac('sha256', process.env.AGENT_CALLBACK_SECRET!)
+      .update(`${stamp}.${url}`)
+      .digest('hex');
     const ok = await app.inject({
       method: 'GET',
       url,
@@ -472,7 +526,11 @@ test('API-18: GET /api/agent/calls/:id requires a valid HMAC and never returns c
     });
     assert.equal(ok.statusCode, 200);
     const body = JSON.parse(ok.body);
-    assert.equal(JSON.stringify(body).includes(String(pricedItem.cost)), false, 'the agent-facing brief must never carry internal pricing');
+    assert.equal(
+      JSON.stringify(body).includes(String(pricedItem.cost)),
+      false,
+      'the agent-facing brief must never carry internal pricing',
+    );
     assert.equal('cost' in (body.brief.items[0] ?? {}), false);
   } finally {
     await app.close();
@@ -497,7 +555,12 @@ test('API-20: a bad HMAC signature on agent events is rejected with 401', async 
   ).run(id, uid, 'e', 'browser', 'starting', 'room', Date.now(), Date.now(), '{}', 'req');
   const app = makeApp({ db });
   try {
-    const payload = JSON.stringify({ id: randomUUID(), callId: id, status: 'active', transcript: [] });
+    const payload = JSON.stringify({
+      id: randomUUID(),
+      callId: id,
+      status: 'active',
+      transcript: [],
+    });
     const stamp = String(Math.floor(Date.now() / 1000));
     const res = await app.inject({
       method: 'POST',
@@ -531,9 +594,16 @@ test('API-22: an expired timestamp on agent events is rejected', async () => {
   ).run(id, uid, 'e', 'browser', 'starting', 'room', Date.now(), Date.now(), '{}', 'req');
   const app = makeApp({ db });
   try {
-    const payload = JSON.stringify({ id: randomUUID(), callId: id, status: 'active', transcript: [] });
+    const payload = JSON.stringify({
+      id: randomUUID(),
+      callId: id,
+      status: 'active',
+      transcript: [],
+    });
     const staleStamp = String(Math.floor(Date.now() / 1000) - 600); // 10 minutes old, outside the 5-minute window
-    const sig = createHmac('sha256', process.env.AGENT_CALLBACK_SECRET!).update(`${staleStamp}.${payload}`).digest('hex');
+    const sig = createHmac('sha256', process.env.AGENT_CALLBACK_SECRET!)
+      .update(`${staleStamp}.${payload}`)
+      .digest('hex');
     const res = await app.inject({
       method: 'POST',
       url: '/api/agent/events',
@@ -542,7 +612,11 @@ test('API-22: an expired timestamp on agent events is rejected', async () => {
     });
     assert.equal(res.statusCode, 401);
     const stored = db.prepare('SELECT status FROM calls WHERE id=?').get(id) as any;
-    assert.equal(stored.status, 'starting', 'an expired-timestamp event must not mutate call state');
+    assert.equal(
+      stored.status,
+      'starting',
+      'an expired-timestamp event must not mutate call state',
+    );
   } finally {
     await app.close();
     db.close();
@@ -566,9 +640,16 @@ test('API-23: a late event arriving after the call has ended does not reopen it'
   ).run(id, uid, 'e', 'browser', 'ended', 'room', Date.now(), Date.now(), '{}', 'req', '[]');
   const app = makeApp({ db });
   try {
-    const payload = JSON.stringify({ id: randomUUID(), callId: id, status: 'active', transcript: [{ role: 'user', text: 'late' }] });
+    const payload = JSON.stringify({
+      id: randomUUID(),
+      callId: id,
+      status: 'active',
+      transcript: [{ role: 'user', text: 'late' }],
+    });
     const stamp = String(Math.floor(Date.now() / 1000));
-    const sig = createHmac('sha256', process.env.AGENT_CALLBACK_SECRET!).update(`${stamp}.${payload}`).digest('hex');
+    const sig = createHmac('sha256', process.env.AGENT_CALLBACK_SECRET!)
+      .update(`${stamp}.${payload}`)
+      .digest('hex');
     const res = await app.inject({
       method: 'POST',
       url: '/api/agent/events',
@@ -577,7 +658,11 @@ test('API-23: a late event arriving after the call has ended does not reopen it'
     });
     assert.equal(res.statusCode, 200);
     const stored = db.prepare('SELECT status FROM calls WHERE id=?').get(id) as any;
-    assert.equal(stored.status, 'ended', 'a terminal call must stay terminal despite a later active event');
+    assert.equal(
+      stored.status,
+      'ended',
+      'a terminal call must stay terminal despite a later active event',
+    );
   } finally {
     await app.close();
     db.close();
@@ -598,7 +683,9 @@ test('API-24: a null event payload returns 400, not 500', async () => {
   try {
     const payload = 'null';
     const stamp = String(Math.floor(Date.now() / 1000));
-    const sig = createHmac('sha256', process.env.AGENT_CALLBACK_SECRET!).update(`${stamp}.${payload}`).digest('hex');
+    const sig = createHmac('sha256', process.env.AGENT_CALLBACK_SECRET!)
+      .update(`${stamp}.${payload}`)
+      .digest('hex');
     const res = await app.inject({
       method: 'POST',
       url: '/api/agent/events',
@@ -625,12 +712,32 @@ test('API-25: a second account cannot extract from the first account call', asyn
   const id = randomUUID();
   db.prepare(
     'INSERT INTO calls(id,user_id,enquiry_id,mode,status,room,created,updated,brief,request_id,transcript) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-  ).run(id, ownerId, 'e', 'browser', 'ended', 'room', Date.now(), Date.now(), '{"items":[]}', 'req', '[]');
+  ).run(
+    id,
+    ownerId,
+    'e',
+    'browser',
+    'ended',
+    'room',
+    Date.now(),
+    Date.now(),
+    '{"items":[]}',
+    'req',
+    '[]',
+  );
   const app = makeApp({ db });
   try {
     const petra = await loginAs(app, 'petra@example.test', 'petra private password');
-    const res = await app.inject({ method: 'POST', url: `/api/calls/${id}/extract`, headers: petra });
-    assert.equal(res.statusCode, 404, 'extraction must be scoped to the owning account before it ever touches the LLM');
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/calls/${id}/extract`,
+      headers: petra,
+    });
+    assert.equal(
+      res.statusCode,
+      404,
+      'extraction must be scoped to the owning account before it ever touches the LLM',
+    );
   } finally {
     await app.close();
     db.close();
