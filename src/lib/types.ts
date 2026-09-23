@@ -12,6 +12,9 @@ export const categories: Category[] = [
 ];
 export const units = ['sq ft', 'sq m', 'r ft', 'm', 'nos', 'sheet', 'set', 'lot', 'Pts'];
 export interface Item {
+  brand?: string;
+  model?: string;
+  vendorId?: string;
   id: string;
   description: string;
   specification: string;
@@ -31,6 +34,8 @@ export interface Item {
   sourceRow?: number;
 }
 export interface WorkbookMapping {
+  brand?: number;
+  model?: number;
   sheet: string;
   headerRow: number;
   description: number;
@@ -70,6 +75,8 @@ export interface Vendor {
   demo?: boolean;
 }
 export interface Rate {
+  brand?: string;
+  model?: string;
   id: string;
   description: string;
   specification: string;

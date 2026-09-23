@@ -12,10 +12,27 @@ const columnName = (n: number): string =>
     ? columnName(Math.floor((n - 1) / 26)) + String.fromCharCode(65 + ((n - 1) % 26))
     : String.fromCharCode(64 + n);
 /** Patch existing OOXML cells only. All unrelated ZIP members retain identical uncompressed bytes. */
-export async function patchOriginal(bytes: ArrayBuffer, project: Project) {
+export async function patchOriginal(
+  bytes: ArrayBuffer,
+  project: Project,
+  fill: 'amounts' | 'rates' = 'amounts',
+) {
   const m = project.mapping;
   if (!m?.rate || project.items.some((i) => !i.sourceRow))
     throw new Error('Original export requires unchanged source rows and a mapped rate column.');
+  const mapped = [
+    m.description,
+    m.unit,
+    m.quantity,
+    m.rate,
+    m.amount,
+    m.brand,
+    m.model,
+    m.specification,
+    m.reference,
+  ].filter(Boolean);
+  if (new Set(mapped).size !== mapped.length)
+    throw new Error('Each source field must use a different column.');
   const zip = await JSZip.loadAsync(bytes);
   const workbook = await zip.file('xl/workbook.xml')!.async('string');
   const sheets = parser.parse(workbook).workbook.sheets.sheet;
@@ -36,29 +53,38 @@ export async function patchOriginal(bytes: ArrayBuffer, project: Project) {
     for (const [col, value] of [
       [m.rate, sellingRate(item, project.markup)],
       [m.amount, lineAmount(item, project.markup)],
+      [m.brand, item.brand],
+      [m.model, item.model],
     ] as const) {
-      if (!col) continue;
+      if (!col || value === undefined || (col === m.amount && fill === 'rates')) continue;
       const ref = `${columnName(col)}${item.sourceRow}`;
       if (seen.has(ref)) throw new Error(`Duplicate price anchor ${ref}; review merged rows.`);
       seen.add(ref);
       const re = new RegExp(`<c\\b([^>]*\\br="${ref}"[^>]*)(?:\\/>|>([\\s\\S]*?)<\\/c>)`);
       const match = xml.match(re);
       if (match?.[2]?.includes('<f')) {
-        if (col === m.rate)
+        if (col !== m.amount)
           throw new Error(
-            `Rate cell ${ref} contains a formula. Use the clean export or review the source formula in Excel; no original export was produced.`,
+            `${col === m.rate ? 'Rate' : 'Product'} cell ${ref} contains a formula. Use the clean export or review the source formula in Excel; no original export was produced.`,
           );
         continue; // preserve client amount formulas
       }
+      const content =
+        value === null
+          ? ''
+          : typeof value === 'string'
+            ? `<is><t xml:space="preserve">${value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</t></is>`
+            : `<v>${value}</v>`;
+      const type = typeof value === 'string' ? ' t="inlineStr"' : '';
       if (match) {
         const attrs = match[1].replace(/\s+t="[^"]*"/g, '');
-        xml = xml.replace(re, `<c${attrs}>${value === null ? '' : `<v>${value}</v>`}</c>`);
+        xml = xml.replace(re, () => `<c${attrs}${type}>${content}</c>`);
       } else {
         const rowRe = new RegExp(
           `(<row\\b[^>]*\\br="${item.sourceRow}"[^>]*>)([\\s\\S]*?)(<\\/row>)`,
         );
         if (!rowRe.test(xml)) throw new Error(`Source row ${item.sourceRow} missing.`);
-        const cell = `<c r="${ref}">${value === null ? '' : `<v>${value}</v>`}</c>`;
+        const cell = `<c r="${ref}"${type}>${content}</c>`;
         xml = xml.replace(rowRe, (_all, start, cells, end) => {
           const next = [
             ...cells.matchAll(/<c\b[^>]*\br="([A-Z]+)\d+"[^>]*(?:\/>|>[\s\S]*?<\/c>)/g),

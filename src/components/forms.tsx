@@ -106,10 +106,14 @@ export function ProjectForm({
 }
 export function ItemForm({
   item,
+  vendors,
+  brands,
   onSave,
   onClose,
 }: {
   item?: Item;
+  vendors: Vendor[];
+  brands: string[];
   onSave: (i: Item) => void;
   onClose: () => void;
 }) {
@@ -135,10 +139,13 @@ export function ItemForm({
             : undefined;
           const next = {
             ...item,
-            rateId: undefined,
+            rateId: undefined as string | undefined,
+            vendorId: String(d.get('vendorId')),
             id: item?.id ?? uid(),
             description: String(d.get('description')).trim(),
             specification: String(d.get('specification')).trim(),
+            brand: String(d.get('brand')).trim(),
+            model: String(d.get('model')).trim(),
             category: d.get('category') as Item['category'],
             unit: String(d.get('unit')),
             quantity:
@@ -150,6 +157,26 @@ export function ItemForm({
             reviewed: false,
             sourceRow: item?.sourceRow,
           } satisfies Item;
+          if (
+            item?.rateId &&
+            !assembly &&
+            [
+              'cost',
+              'description',
+              'specification',
+              'unit',
+              'quantity',
+              'quantityKind',
+              'brand',
+              'model',
+              'vendorId',
+            ].every(
+              (key) =>
+                (next[key as keyof Item] ?? (key === 'quantityKind' ? 'measured' : '')) ===
+                (item[key as keyof Item] ?? (key === 'quantityKind' ? 'measured' : '')),
+            )
+          )
+            next.rateId = item.rateId;
           onSave(next);
         }}
       >
@@ -187,6 +214,52 @@ export function ItemForm({
             </select>
           </Field>
         </div>
+        <div className="form-grid">
+          <Field
+            label="Brand / make"
+            hint="The product you plan to supply; alternatives remain separate quotations."
+          >
+            <input
+              name="brand"
+              list="item-brands"
+              maxLength={200}
+              defaultValue={item?.brand}
+              placeholder="e.g. Polycab"
+            />
+          </Field>
+          <Field label="Model / product code">
+            <input
+              name="model"
+              maxLength={200}
+              defaultValue={item?.model}
+              placeholder="Exact model, if known"
+            />
+          </Field>
+        </div>
+        <datalist id="item-brands">
+          {brands.map((brand) => (
+            <option key={brand} value={brand} />
+          ))}
+        </datalist>
+        <Field
+          label="Cost vendor"
+          hint="Optional for manual estimates. To attach dated quotation evidence, use Find rate."
+        >
+          <select name="vendorId" defaultValue={item?.vendorId ?? ''}>
+            <option value="">No vendor / manual estimate</option>
+            {vendors.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        {item?.rateId && (
+          <p className="notice">
+            This cost is linked to saved quotation evidence. Changing the product, vendor, quantity
+            or cost makes it a manual estimate; the original quotation stays in the rate library.
+          </p>
+        )}
         <Field label="Quantity basis">
           <select name="quantityKind" defaultValue={item?.quantityKind ?? 'measured'}>
             <option value="measured">Measured quantity</option>
@@ -364,7 +437,7 @@ export function RateForm({
   vendors: Vendor[];
   item?: Item;
   vendorId?: string;
-  draft?: { cost?: number; sourceRef: string; notes: string };
+  draft?: { cost?: number; brand?: string; model?: string; sourceRef: string; notes: string };
   onSave: (r: Rate) => void;
   onClose: () => void;
 }) {
@@ -383,10 +456,18 @@ export function RateForm({
             setError('Validity must be on or after the quotation date.');
             return;
           }
+          if (d.get('source') === 'Vendor quote' && !d.get('vendorId')) {
+            setError(
+              'Select a vendor for a vendor quotation, or choose Manual estimate as the source.',
+            );
+            return;
+          }
           onSave({
             id: uid(),
             description: String(d.get('description')).trim(),
             specification: String(d.get('specification')).trim(),
+            brand: String(d.get('brand')).trim(),
+            model: String(d.get('model')).trim(),
             category: d.get('category') as Rate['category'],
             unit: String(d.get('unit')),
             cost: Number(d.get('cost')),
@@ -420,6 +501,27 @@ export function RateForm({
             placeholder="Brand, model, grade, size and inclusions"
           />
         </Field>
+        <div className="form-grid">
+          <Field label="Quoted brand / make">
+            <input
+              name="brand"
+              maxLength={200}
+              defaultValue={draft ? (draft.brand ?? '') : item?.brand}
+              placeholder="As quoted; leave blank if unknown"
+            />
+          </Field>
+          <Field label="Quoted model / product code">
+            <input
+              name="model"
+              maxLength={200}
+              defaultValue={draft ? (draft.model ?? '') : item?.model}
+            />
+          </Field>
+        </div>
+        <p className="muted small-text">
+          Each save records a separate offer. Keep different brands, vendors and prices as separate
+          quotations.
+        </p>
         <div className="form-grid thirds">
           <Field label="Category">
             <select name="category" defaultValue={item?.category}>

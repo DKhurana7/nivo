@@ -319,7 +319,7 @@ export function RatesPage({
   const [detail, setDetail] = useState<Rate | null>(null);
   const rates = workspace.rates.filter(
     (r) =>
-      `${r.description} ${r.specification} ${r.sourceRef}`
+      `${r.description} ${r.specification} ${r.sourceRef} ${r.brand ?? ''} ${r.model ?? ''} ${workspace.vendors.find((v) => v.id === r.vendorId)?.name ?? ''}`
         .toLowerCase()
         .includes(query.toLowerCase()) &&
       (category === 'All categories' || r.category === category),
@@ -352,7 +352,7 @@ export function RatesPage({
           <Search
             value={query}
             onChange={setQuery}
-            placeholder="Search materials, specifications or sources"
+            placeholder="Search items, brands, models or vendors"
           />
           <select
             aria-label="Filter rate category"
@@ -383,6 +383,10 @@ export function RatesPage({
                     <button className="item-title" onClick={() => setDetail(r)}>
                       {r.description}
                     </button>
+                    <p className="cell-subtitle">
+                      {[r.brand, r.model].filter(Boolean).join(' / ') ||
+                        'Brand / model not specified'}
+                    </p>
                     <p className="cell-subtitle">{r.specification}</p>
                     <span className="item-meta">
                       {r.category}
@@ -449,6 +453,8 @@ export function RatesPage({
             <small> / {detail.unit}, before GST</small>
           </div>
           <dl className="detail-list">
+            <dt>Brand / model</dt>
+            <dd>{[detail.brand, detail.model].filter(Boolean).join(' / ') || 'Not specified'}</dd>
             <dt>Specification</dt>
             <dd>{detail.specification}</dd>
             <dt>Source</dt>

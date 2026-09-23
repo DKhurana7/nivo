@@ -54,12 +54,13 @@ test('create, price, review, export and reload a BOQ', async ({ page }) => {
   await page.getByRole('button', { name: 'Export BOQ', exact: true }).click();
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: /Client quotation/ }).click();
+  await page.getByRole('button', { name: 'Download Excel', exact: true }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain('Pilot residence');
   const path = await download.path();
   const book = new ExcelJS.Workbook();
   await book.xlsx.readFile(path!);
-  expect(book.getWorksheet('BOQ')!.getCell('I5').value).toBe(1200);
+  expect(book.getWorksheet('BOQ')!.getCell('G5').value).toBe(1200);
   await page.reload();
   await page.getByLabel('Choose project').selectOption({ label: 'Pilot residence' });
   await expect(page.getByRole('button', { name: 'Test plywood', exact: true })).toBeVisible();
@@ -115,6 +116,9 @@ test('imports mapped workbook and fills original cells without replacing neighbo
   await page.getByRole('button', { name: 'Export BOQ' }).click();
   const promise = page.waitForEvent('download');
   await page.getByRole('button', { name: /Fill the original workbook/ }).click();
+  await expect(page.getByRole('region', { name: 'Excel preview', exact: true })).toBeVisible();
+  await page.getByRole('checkbox', { name: /I understand this includes/ }).check();
+  await page.getByRole('button', { name: 'Download Excel', exact: true }).click();
   const dl = await promise;
   const output = new ExcelJS.Workbook();
   await output.xlsx.readFile((await dl.path())!);
@@ -140,7 +144,22 @@ test('prepares enquiry, captures a quote and keeps calling explicitly disconnect
   await page.getByLabel('Delivery location').fill('Gurugram');
   await page.getByLabel('Commercial terms').fill('GST and freight extra. Stock available.');
   await page.getByRole('button', { name: 'Save quotation', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Update quotation' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Record another offer' })).toBeVisible();
+  await page.getByRole('button', { name: 'Record another offer', exact: true }).click();
+  await page.getByLabel('Quoted brand / make').fill('Alternative make');
+  await page.getByLabel('Quoted model / product code').fill('ALT-12');
+  await page.getByLabel('Unit cost (₹)', { exact: true }).fill('750');
+  await page.getByLabel('Source reference').fill('Alternative offer');
+  await page.getByLabel('Delivery location').fill('Gurugram');
+  await page.getByLabel('Commercial terms').fill('Supply only; GST extra');
+  await page.getByRole('button', { name: 'Save quotation', exact: true }).click();
+  const offers = await page.evaluate(() => JSON.parse(localStorage.getItem('nivo.workspace.v1')!));
+  expect(offers.enquiries[0].quotes).toHaveLength(2);
+  expect(
+    offers.rates.filter((r: { sourceRef: string }) =>
+      ['Phone quote 22/09', 'Alternative offer'].includes(r.sourceRef),
+    ),
+  ).toHaveLength(2);
   await page.getByRole('button', { name: 'Close dialog' }).click();
   await page.goto('/#rates');
   await expect(page.getByRole('row').filter({ hasText: '₹725.00' })).toContainText('LED downlight');

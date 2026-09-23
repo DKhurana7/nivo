@@ -3,7 +3,7 @@ import type ExcelJS from 'exceljs';
 import { get, set } from 'idb-keyval';
 import type { Item, Project, WorkbookMapping } from './types';
 import { uid } from './types';
-import { lineAmount, quantityLabel, sellingRate, totals } from './costing';
+import { quantityLabel } from './costing';
 
 export const workbookKey = (id: string) => `nivo.workbook.${id}`;
 async function createWorkbook() {
@@ -81,6 +81,8 @@ export function parseSheet(book: ExcelJS.Workbook, mapping: WorkbookMapping, imp
       id: uid(),
       description,
       specification: text(mapping.specification),
+      brand: text(mapping.brand),
+      model: text(mapping.model),
       category: 'Other',
       quantity: quantityKind === 'measured' ? quantity : null,
       quantityKind,
@@ -110,104 +112,14 @@ export function downloadBlob(data: BlobPart, filename: string, type: string) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
-export async function exportProject(project: Project, original = false, internal = false) {
-  let book: ExcelJS.Workbook;
-  if (original) {
-    if (!project.workbookId || !project.mapping?.rate)
-      throw new Error('Original export needs a retained workbook and a mapped rate column.');
-    const bytes = remote
-      ? await fetchWorkbook(project.workbookId)
-      : await get<ArrayBuffer>(workbookKey(project.workbookId));
-    if (!bytes)
-      throw new Error(
-        'The source workbook is missing from this browser. Export a new BOQ instead.',
-      );
-    const { patchOriginal } = await import('./workbook-patch');
-    const patched = await patchOriginal(bytes, project);
-    downloadBlob(
-      patched as BlobPart,
-      `${project.name.replace(/[^a-zA-Z0-9 _-]/g, '')}-internal-priced-original.xlsx`,
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    return;
-  } else {
-    book = await createWorkbook();
-    const sheet = book.addWorksheet('BOQ');
-    sheet.addRow([project.name]);
-    sheet.addRow([project.client, project.location]);
-    sheet.addRow(['Rates are INR, excluding GST. Review incomplete lines before issuing.']);
-    sheet.addRow([
-      'Ref',
-      'Description',
-      'Specification',
-      'Category',
-      'Unit',
-      'Quantity',
-      internal ? 'Unit cost' : 'Reference',
-      'Selling rate',
-      'Amount',
-      'Review',
-    ]);
-    project.items.forEach((i, index) => {
-      const rate = sellingRate(i, project.markup);
-      sheet.addRow([
-        i.reference || index + 1,
-        i.description,
-        [...(i.context ?? []).map((c) => c.text), i.specification].filter(Boolean).join('\n'),
-        i.category,
-        i.unit,
-        i.quantityKind === 'rate-only' ? 'RO' : i.quantity,
-        internal ? i.cost : '',
-        rate,
-        lineAmount(i, project.markup),
-        i.cost === null ? 'Unpriced' : i.reviewed ? 'Reviewed' : 'Needs review',
-      ]);
-    });
-    if (project.generalNotes) {
-      const notes = book.addWorksheet('General notes');
-      notes.addRow([project.generalNotes]);
-      notes.getColumn(1).width = 100;
-      notes.getCell('A1').alignment = { wrapText: true };
-    }
-    const t = totals(project);
-    sheet.addRow([]);
-    sheet.addRow(['', 'Subtotal (priced lines)', '', '', '', '', '', '', t.selling]);
-    sheet.addRow(['', `GST ${project.gst}%`, '', '', '', '', '', '', t.tax]);
-    sheet.addRow([
-      '',
-      t.missing || t.unresolved
-        ? 'Partial total: unresolved lines excluded'
-        : 'Total (rate-only lines excluded)',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      t.total,
-    ]);
-    sheet.columns = [
-      { width: 8 },
-      { width: 40 },
-      { width: 60 },
-      { width: 16 },
-      { width: 12 },
-      { width: 12 },
-      { width: 16 },
-      { width: 16 },
-      { width: 18 },
-      { width: 18 },
-    ];
-    sheet.getRow(4).font = { bold: true, color: { argb: 'FFF6F7F5' } };
-    sheet.getRow(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF183247' } };
-    sheet.views = [{ state: 'frozen', ySplit: 4 }];
-    for (const col of [7, 8, 9]) sheet.getColumn(col).numFmt = '#,##0.00';
-  }
-  const bytes = await book.xlsx.writeBuffer();
-  const safe = project.name.replace(/[^a-zA-Z0-9 _-]/g, '').trim() || 'Project';
-  downloadBlob(
-    bytes as unknown as BlobPart,
-    `${safe}${internal ? '-internal-costing' : '-client-BOQ'}.xlsx`,
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  );
+/** Load source bytes only for an explicitly selected original-workbook export. */
+export async function originalBytes(project: Project) {
+  if (!project.workbookId || !project.mapping?.rate)
+    throw new Error('Original export needs a retained workbook and a mapped rate column.');
+  const bytes = remote
+    ? await fetchWorkbook(project.workbookId)
+    : await get<ArrayBuffer>(workbookKey(project.workbookId));
+  if (!bytes)
+    throw new Error('The source workbook is missing. Choose a new client quotation instead.');
+  return bytes;
 }

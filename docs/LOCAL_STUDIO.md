@@ -9,7 +9,7 @@ The Raisina electrical BOQ is already imported:112 unpriced items, including25 r
 3. Add your actual vendor in **Vendors**. A browser-only test can use a clearly named internal tester with no telephone number.
 4. In **Enquiry desk**, select that vendor and1–20 relevant items; prepare the brief. **Test in browser** uses your microphone so you can play the vendor. Use headphones and speak English for the tested baseline.
 5. End the call, extract drafts and review each quotation. Unknown tax or mismatched units leave the price field blank for explicit confirmation/conversion. Record the quotation, then apply the rate to the BOQ separately.
-6. Review priced items before approval. Use **Client quotation** for a clean selling-price workbook. The **original internal** export retains all original sheets and may contain private source information. Unpriced source cells remain unchanged; a formula in a priced rate cell blocks that export with its address.
+6. Review priced items before approval. Choose **Export BOQ**, select the workbook and filling options, inspect **Workbook preview**, then **Download Excel**. Use **Client quotation** for a clean selling-price workbook. The **original internal** export retains all original sheets and may contain private source information. Unpriced source cells remain unchanged; a formula in a priced rate cell blocks that export with its address.
 
 Ordinary telephone calls require your own SIP carrier, verified caller number, credentials and supported routes. Outbound remains disabled. No vendor was called or quoted during setup; all live voice tests used synthetic speech and test data. Hindi/Hinglish, real handsets and public hosting remain unvalidated.
 
@@ -51,3 +51,17 @@ node --env-file=.env --import tsx scripts/backup-server.ts data/backups
 For future workbook preparation, `scripts/prepare-boq.ts` accepts an XLSX path, a JSON config containing `mapping`, `name`, `company`, `category` and optional client/location/dueDate/markup/GST, then an output directory. It writes a private backup without modifying the input and refuses to overwrite existing outputs. `scripts/setup-local-studio.ts` accepts a prepared backup and optional login email; it refuses an existing studio or credentials file.
 
 Synthetic integration tools are separate: `scripts/voice-test-server.ts` uses an in-memory database on8787, `agent.smoke_session` tests speech through extraction, and `scripts/smoke-browser.mjs` checks microphone controls. **Stop the persistent API before starting the synthetic API**, and restart the persistent API afterward. Never use synthetic login credentials for the real studio. For deployment/SIP configuration see [HOSTING_AND_VOICE.md](HOSTING_AND_VOICE.md).
+
+## Brands, vendors and competing offers
+
+Edit a BOQ item to enter its brand/make, model and cost vendor. A directly typed cost remains a manual estimate. For a dated quotation, open **Find rate** (or the existing cost), then **Record another offer**. Choose the vendor, quoted brand/model, price, validity and commercial terms. Each offer is saved separately; you can search the comparison by brand or vendor and explicitly apply the chosen offer. Switching offers updates the brand/model/vendor/cost together and reopens review. The other offers stay available. Editing the cost or product later detaches its quotation link but retains the historical quote.
+
+Enquiry responses and voice drafts can retain several offers for the same BOQ item. Confirm specification, unit, GST and any brand substitution before applying one. Brands/models entered as free text are not automatically certified equivalents.
+
+## Filling and previewing the Excel
+
+**Client quotation** creates a fresh Excel workbook containing selling rates and chosen brand/model, without private supplier/cost columns or source sheets. Choose rates only or rates plus amounts, fixed values or recalculating formulas, and simple formatting or minimal styling. Project general notes are optional. Unpriced rates stay blank and incomplete/unreviewed output is marked draft.
+
+**Fill the original workbook (internal)** retains the client's sheets, layout and formulas; check every sheet, including hidden ones, before forwarding it. Unpriced source cells and amount formulas stay intact. Formulas must recalculate in Excel. If brand/model columns were mapped during import, selected product details are filled there; otherwise the dialog warns they will be absent. Use the fresh client quotation to include those details. The source file itself is never changed.
+
+The preview shows the prepared download's cell contents, with sheet selection and paginated rows. It is not a pixel-perfect Excel viewer; drawings and source formatting may look different. Long specifications remain in the file, but Excel row-height limits can require expanding/editing layout before printing. The internal costing workbook includes vendor and purchase-cost information for your own review.

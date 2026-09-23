@@ -42,6 +42,8 @@ export function ImportDialog({
     mapping.reference,
     mapping.rate,
     mapping.amount,
+    mapping.brand,
+    mapping.model,
   ].filter(Boolean);
   const duplicates = new Set(mapped).size !== mapped.length;
   async function read(file?: File) {
@@ -164,6 +166,8 @@ export function ImportDialog({
             {select('quantity', 'Quantity')}
             {select('unit', 'Unit')}
             {select('specification', 'Specification', true)}
+            {select('brand', 'Brand / make column', true)}
+            {select('model', 'Model / product code column', true)}
             {select('rate', 'Rate column', true)}
             {select('amount', 'Amount column', true)}
           </div>
@@ -211,7 +215,10 @@ export function ImportDialog({
                 {result?.items.slice(0, 5).map((i) => (
                   <tr key={i.id}>
                     <td>{i.sourceRow}</td>
-                    <td>{i.description}</td>
+                    <td>
+                      {i.description}
+                      <small>{[i.brand, i.model].filter(Boolean).join(' / ')}</small>
+                    </td>
                     <td>{i.unit}</td>
                     <td>
                       {i.quantityKind === 'rate-only' ? 'RO' : (i.quantity ?? 'Needs quantity')}

@@ -34,9 +34,14 @@ export function validateWorkspace(value: unknown): value is Workspace {
             Number.isInteger(p.mapping.headerRow) &&
             p.mapping.headerRow >= 1 &&
             p.mapping.headerRow <= 10000 &&
-            [p.mapping.rate, p.mapping.amount, p.mapping.specification, p.mapping.reference].every(
-              (v) => v === undefined || column(v),
-            ))) &&
+            [
+              p.mapping.rate,
+              p.mapping.amount,
+              p.mapping.specification,
+              p.mapping.reference,
+              p.mapping.brand,
+              p.mapping.model,
+            ].every((v) => v === undefined || column(v)))) &&
         num(p.markup) &&
         num(p.gst) &&
         Array.isArray(p.items) &&
@@ -46,6 +51,7 @@ export function validateWorkspace(value: unknown): value is Workspace {
             str(i.id) &&
             str(i.description) &&
             str(i.specification) &&
+            [i.brand, i.model, i.vendorId, i.rateId].every((v) => v === undefined || str(v)) &&
             str(i.unit) &&
             categories.includes(i.category) &&
             (i.sourceRow === undefined ||
@@ -91,6 +97,7 @@ export function validateWorkspace(value: unknown): value is Workspace {
         str(r.id) &&
         str(r.description) &&
         str(r.specification) &&
+        [r.brand, r.model].every((v) => v === undefined || str(v)) &&
         str(r.unit) &&
         categories.includes(r.category) &&
         num(r.cost) &&

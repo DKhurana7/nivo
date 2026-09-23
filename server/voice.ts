@@ -1,4 +1,5 @@
 import { AccessToken, AgentDispatchClient, RoomServiceClient, SipClient } from 'livekit-server-sdk';
+import { withOfferIdentity } from '../src/lib/costing';
 import type { Workspace } from '../src/lib/types';
 export function voiceConfig() {
   const required = [
@@ -33,16 +34,20 @@ export function callBrief(w: Workspace, enquiryId: string) {
     phone: v.phone,
     notes: e.notes,
     generalNotes: p.generalNotes || '',
-    items: items.map((i) => ({
-      id: i.id,
-      reference: i.reference,
-      description: i.description,
-      specification: i.specification,
-      context: i.context,
-      unit: i.unit,
-      quantity: i.quantity,
-      quantityKind: i.quantityKind,
-    })),
+    items: items
+      .map((i) => withOfferIdentity(i, w.rates))
+      .map((i) => ({
+        id: i.id,
+        reference: i.reference,
+        description: i.description,
+        specification: i.specification,
+        brand: i.brand,
+        model: i.model,
+        context: i.context,
+        unit: i.unit,
+        quantity: i.quantity,
+        quantityKind: i.quantityKind,
+      })),
   };
 }
 export function clients() {

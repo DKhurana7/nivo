@@ -36,8 +36,20 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'data/verification/raisina-phone.png', fullPage: false });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByRole('button', { name: 'Export BOQ', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Excel preview', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /Fill the original workbook/ }).click();
+  await expect(page.getByRole('region', { name: 'Excel preview', exact: true })).toBeVisible();
+  expect(await page.getByLabel('Preview sheet').locator('option').count()).toBe(5);
+  await expect(page.getByRole('button', { name: 'Download Excel', exact: true })).toBeDisabled();
+  await page.getByRole('region', { name: 'Excel preview', exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'data/verification/raisina-export-preview.png', fullPage: false });
+  await page.keyboard.press('Escape');
+  const unchanged = await (await page.request.get(`${login.url}/api/workspace`)).json();
+  expect(unchanged.workspace).toEqual(saved.workspace);
   console.log(
-    `Persistent studio verified: ${project.items.length} unpriced items, original workbook hash preserved, reload and phone layout passed.`,
+    `Persistent studio verified: ${project.items.length} unpriced items, original workbook hash preserved, reload, phone layout and five-sheet original export preview passed.`,
   );
 } finally {
   await browser.close();

@@ -133,7 +133,8 @@ test('voice draft review preserves evidence and does not assume a different quot
         unit: 'carton',
         cost: 125,
         basis: 'excluding-gst',
-        brand: '',
+        brand: 'Quoted Brand',
+        model: 'Q-1',
         terms: 'Supply only',
         evidence,
         needsReview: true,
@@ -152,6 +153,8 @@ test('voice draft review preserves evidence and does not assume a different quot
     .getByLabel('Exact specification')
     .fill('Confirmed specification and manually verified conversion');
   await form.getByLabel('Delivery location').fill('Synthetic test site');
+  await expect(form.getByLabel('Quoted brand / make')).toHaveValue('Quoted Brand');
+  await expect(form.getByLabel('Quoted model / product code')).toHaveValue('Q-1');
   await form.getByRole('button', { name: 'Save quotation' }).click();
   await expect(form).toHaveCount(0);
   await expect

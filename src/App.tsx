@@ -1,6 +1,7 @@
 import { remote } from './lib/api';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { withOfferIdentity } from './lib/costing';
 import { useWorkspace } from './lib/storage';
 import type { Page, Project } from './lib/types';
 import { Icon, Modal } from './components/ui';
@@ -23,7 +24,17 @@ function route(): Page {
   return [...navigation.map((n) => n.id), 'settings'].includes(hash) ? (hash as Page) : 'overview';
 }
 export default function App() {
-  const { workspace, setWorkspace, error, allowSave } = useWorkspace();
+  const { workspace: storedWorkspace, setWorkspace, error, allowSave } = useWorkspace();
+  const workspace = useMemo(
+    () => ({
+      ...storedWorkspace,
+      projects: storedWorkspace.projects.map((p) => ({
+        ...p,
+        items: p.items.map((i) => withOfferIdentity(i, storedWorkspace.rates)),
+      })),
+    }),
+    [storedWorkspace],
+  );
   const [page, setPage] = useState<Page>(route);
   const [selectedProject, setSelectedProject] = useState(workspace.projects[0]?.id ?? '');
   const [newProject, setNewProject] = useState(false);
@@ -300,6 +311,7 @@ export default function App() {
                 onNew={() => setNewProject(true)}
                 notify={notify}
                 onEnquire={() => navigate('enquiries')}
+                onAddRate={(rate) => setWorkspace((w) => ({ ...w, rates: [rate, ...w.rates] }))}
               />
             )}
             {page === 'rates' && (
@@ -441,7 +453,11 @@ export default function App() {
               ))}
             {query &&
               workspace.rates
-                .filter((r) => r.description.toLowerCase().includes(query.toLowerCase()))
+                .filter((r) =>
+                  `${r.description} ${r.brand ?? ''} ${r.model ?? ''} ${workspace.vendors.find((v) => v.id === r.vendorId)?.name ?? ''}`
+                    .toLowerCase()
+                    .includes(query.toLowerCase()),
+                )
                 .slice(0, 5)
                 .map((r) => (
                   <button

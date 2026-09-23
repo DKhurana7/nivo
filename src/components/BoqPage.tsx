@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { categories, type Item, type Project, type Workspace } from '../lib/types';
+import { categories, type Item, type Project, type Workspace, type Rate } from '../lib/types';
 import {
   applyRate,
+  productLabel,
   dateLabel,
   isStale,
   money,
@@ -11,9 +12,9 @@ import {
   lineAmount,
   totals,
 } from '../lib/costing';
-import { exportProject } from '../lib/spreadsheet';
+import { ExportDialog } from './ExportDialog';
 import { Badge, Empty, Field, Icon, Modal, Search } from './ui';
-import { ItemForm, ProjectForm } from './forms';
+import { ItemForm, ProjectForm, RateForm } from './forms';
 import { ImportDialog } from './ImportDialog';
 
 export function BoqPage({
@@ -25,6 +26,7 @@ export function BoqPage({
   onNew,
   notify,
   onEnquire,
+  onAddRate,
 }: {
   workspace: Workspace;
   project?: Project;
@@ -34,6 +36,7 @@ export function BoqPage({
   onNew: () => void;
   notify: (s: string) => void;
   onEnquire: () => void;
+  onAddRate: (rate: Rate) => void;
 }) {
   const [projectDetails, setProjectDetails] = useState(false);
   const [deleteProject, setDeleteProject] = useState(false);
@@ -42,10 +45,11 @@ export function BoqPage({
   const [filter, setFilter] = useState('All');
   const [edit, setEdit] = useState<Item | 'new' | null>(null);
   const [matching, setMatching] = useState<Item | null>(null);
+  const [quoting, setQuoting] = useState<Item | null>(null);
+  const [offerSearch, setOfferSearch] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [pricing, setPricing] = useState(false);
   const [deleting, setDeleting] = useState<Item | null>(null);
   if (!project)
@@ -81,21 +85,17 @@ export function BoqPage({
       (filter === 'All' ||
         (filter === 'Unpriced' && i.cost === null) ||
         (filter === 'Needs review' && !i.reviewed)) &&
-      `${i.description} ${i.specification}`.toLowerCase().includes(search.toLowerCase()),
+      `${i.description} ${i.specification} ${i.brand ?? ''} ${i.model ?? ''} ${workspace.vendors.find((v) => v.id === i.vendorId)?.name ?? ''}`
+        .toLowerCase()
+        .includes(search.toLowerCase()),
   );
-  const candidates = matching ? rateCandidates(matching, workspace.rates) : [];
-  async function download(original = false, internal = false) {
-    setBusy(true);
-    try {
-      await exportProject(project!, original, internal);
-      notify('BOQ exported');
-      setExporting(false);
-    } catch (e) {
-      notify(e instanceof Error ? e.message : 'Export failed. Try again.');
-    } finally {
-      setBusy(false);
-    }
-  }
+  const candidates = matching
+    ? rateCandidates(matching, workspace.rates).filter((r) =>
+        `${r.description} ${r.specification} ${r.brand ?? ''} ${r.model ?? ''} ${workspace.vendors.find((v) => v.id === r.vendorId)?.name ?? ''}`
+          .toLowerCase()
+          .includes(offerSearch.toLowerCase()),
+      )
+    : [];
   return (
     <>
       <div className="page-heading">
@@ -247,6 +247,11 @@ export function BoqPage({
                                 ? 'Inherited specification · open item to review'
                                 : 'Specification not provided')}
                           </p>
+                          <p className="item-meta">
+                            {productLabel(item)} /{' '}
+                            {workspace.vendors.find((v) => v.id === item.vendorId)?.name ??
+                              'No vendor linked'}
+                          </p>
                           <span className="item-meta">
                             {item.category}
                             {source
@@ -263,6 +268,7 @@ export function BoqPage({
                             className={`rate-value ${item.cost === null ? 'missing' : ''}`}
                             onClick={() => {
                               setMatching(item);
+                              setOfferSearch('');
                               setConfirmed(false);
                             }}
                           >
@@ -331,11 +337,13 @@ export function BoqPage({
                   item={item}
                   markup={project.markup}
                   source={
-                    workspace.rates.find((r) => r.id === item.rateId)?.source ??
-                    (item.cost !== null ? 'Manual estimate' : 'No rate yet')
+                    `${productLabel(item)} / ${workspace.vendors.find((v) => v.id === item.vendorId)?.name ?? 'No vendor linked'} / ` +
+                    (workspace.rates.find((r) => r.id === item.rateId)?.source ??
+                      (item.cost !== null ? 'Manual estimate' : 'No rate yet'))
                   }
                   onMatch={() => {
                     setMatching(item);
+                    setOfferSearch('');
                     setConfirmed(false);
                   }}
                   onEdit={() => setEdit(item)}
@@ -467,6 +475,14 @@ export function BoqPage({
       {edit && (
         <ItemForm
           item={edit === 'new' ? undefined : edit}
+          vendors={workspace.vendors}
+          brands={[
+            ...new Set(
+              [...workspace.rates, ...workspace.projects.flatMap((p) => p.items)]
+                .map((i) => i.brand)
+                .filter((b): b is string => !!b),
+            ),
+          ]}
           onClose={() => setEdit(null)}
           onSave={(i) => {
             const previous = project.items.find((x) => x.id === i.id);
@@ -489,6 +505,22 @@ export function BoqPage({
             });
             setEdit(null);
             notify('BOQ item saved');
+          }}
+        />
+      )}
+      {quoting && (
+        <RateForm
+          item={quoting}
+          vendors={workspace.vendors}
+          vendorId={quoting.vendorId}
+          onClose={() => setQuoting(null)}
+          onSave={(rate) => {
+            onAddRate(rate);
+            setMatching(quoting);
+            setOfferSearch('');
+            setConfirmed(false);
+            setQuoting(null);
+            notify('Offer saved. Compare and apply it when ready.');
           }}
         />
       )}
@@ -523,6 +555,15 @@ export function BoqPage({
             />
             I will verify the selected rate covers this exact specification and location.
           </label>
+          <p className="small-text">
+            Current choice: {productLabel(matching)}. Choosing an offer replaces this item's brand,
+            model, vendor and cost; the other offers remain in the library.
+          </p>
+          <Search
+            value={offerSearch}
+            onChange={setOfferSearch}
+            placeholder="Compare brands, models or vendors"
+          />
           <div className="candidate-list">
             {candidates.length ? (
               candidates.map((r) => (
@@ -534,7 +575,17 @@ export function BoqPage({
                         {isStale(r) ? 'Expired' : `Valid to ${dateLabel(r.validUntil)}`}
                       </Badge>
                     </div>
+                    <p>
+                      <strong>{productLabel(r)}</strong>
+                    </p>
                     <p>{r.specification}</p>
+                    {matching.brand &&
+                      matching.brand.toLowerCase() !== (r.brand ?? '').toLowerCase() && (
+                        <p className="small-text">
+                          Different or unspecified brand. Confirm this substitution meets the client
+                          specification.
+                        </p>
+                      )}
                     <p>
                       {workspace.vendors.find((v) => v.id === r.vendorId)?.name ??
                         'Internal source'}{' '}
@@ -551,7 +602,12 @@ export function BoqPage({
                   </div>
                   <div className="candidate-price">
                     <strong>{money(r.cost, 2)}</strong>
-                    <span>per {r.unit}</span>
+                    <span>per {r.unit}, excluding GST</span>
+                    <small>
+                      Selling:{' '}
+                      {money(sellingRate({ ...matching, cost: r.cost }, project.markup)!, 2)} /{' '}
+                      {r.unit}
+                    </small>
                     <button
                       className="button secondary small"
                       disabled={!confirmed || isStale(r)}
@@ -578,6 +634,15 @@ export function BoqPage({
             )}
           </div>
           <div className="form-footer">
+            <button
+              className="button secondary"
+              onClick={() => {
+                setQuoting(matching);
+                setMatching(null);
+              }}
+            >
+              Record another offer
+            </button>
             <button
               className="button secondary"
               onClick={() => {
@@ -655,62 +720,12 @@ export function BoqPage({
         </Modal>
       )}
       {exporting && (
-        <Modal
-          title="Export this BOQ"
-          subtitle="Choose the workbook you want to take with you."
-          onClose={() => !busy && setExporting(false)}
-        >
-          {t.missing > 0 && (
-            <p className="notice">
-              {t.missing} items are unpriced. Clean exports leave those rates blank. The original
-              internal workbook retains their source cells, which are not confirmed quotations.
-            </p>
-          )}
-          {t.unresolved > 0 && (
-            <p className="notice">
-              {t.unresolved} lines need quantities. Their amounts are excluded.
-            </p>
-          )}
-          <div className="export-options">
-            <button disabled={busy} onClick={() => void download(false)}>
-              <Icon name="boq" />
-              <div>
-                <strong>Client quotation</strong>
-                <p>
-                  Selling rates, specifications and totals. No purchase costs or private source
-                  sheets.
-                </p>
-              </div>
-              <Icon name="download" />
-            </button>
-            <button
-              disabled={busy || !project.workbookId || !project.mapping?.rate}
-              onClick={() => void download(true)}
-            >
-              <Icon name="upload" />
-              <div>
-                <strong>Fill the original workbook (internal)</strong>
-                <p>
-                  Preserves source sheets, links and drawings. May contain private costing,
-                  discounts and margins. Review before sharing.
-                </p>
-              </div>
-              <Icon name="download" />
-            </button>
-            <button disabled={busy} onClick={() => void download(false, true)}>
-              <Icon name="boq" />
-              <div>
-                <strong>Internal costing workbook</strong>
-                <p>Purchase costs alongside selling rates. For your studio only.</p>
-              </div>
-            </button>
-          </div>
-          <p className="muted small-text">
-            Review workbook formulas in Excel before sending to a client. Original exports retain
-            all source sheets, including confidential costing. Use Client quotation to share safely.
-          </p>
-          {busy && <p role="status">Preparing workbook…</p>}
-        </Modal>
+        <ExportDialog
+          project={project}
+          vendors={workspace.vendors}
+          onClose={() => setExporting(false)}
+          notify={notify}
+        />
       )}
       {deleting && (
         <Modal

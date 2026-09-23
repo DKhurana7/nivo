@@ -37,7 +37,7 @@ export function EnquiriesPage({
       .filter((i) => e.itemIds.includes(i.id))
       .map(
         (i, n) =>
-          `${n + 1}. ${i.description}\nSpecification: ${[...(i.context ?? []).map((c) => c.text), i.specification].filter(Boolean).join(' / ') || 'Please clarify before quoting'}\nQuantity: ${quantityLabel(i)} ${i.unit}`,
+          `${n + 1}. ${i.description}\nSpecification: ${[...(i.context ?? []).map((c) => c.text), i.specification].filter(Boolean).join(' / ') || 'Please clarify before quoting'}\nBrand / model: ${[i.brand, i.model].filter(Boolean).join(' / ') || 'Please propose and identify the make'}\nQuantity: ${quantityLabel(i)} ${i.unit}`,
       )
       .join(
         '\n\n',
@@ -211,7 +211,7 @@ export function EnquiriesPage({
                   />
                   <div>
                     <strong>{i.description}</strong>
-                    <span>{i.specification}</span>
+                    <span>{[i.brand, i.model, i.specification].filter(Boolean).join(' / ')}</span>
                   </div>
                   <small>
                     {quantityLabel(i)} {i.unit}
@@ -287,13 +287,27 @@ export function EnquiriesPage({
               .filter((i) => detail.itemIds.includes(i.id))
               .map((i) => (
                 <div key={i.id}>
-                  <span>{i.description}</span>
+                  <span>
+                    {i.description}
+                    <small>{[i.brand, i.model].filter(Boolean).join(' / ')}</small>
+                    {(detail.quotes ?? [])
+                      .filter((q) => q.itemId === i.id)
+                      .map((q) => {
+                        const r = workspace.rates.find((r) => r.id === q.rateId);
+                        return r ? (
+                          <small key={q.rateId}>
+                            {[r.brand, r.model].filter(Boolean).join(' / ') || 'Unspecified brand'}{' '}
+                            · ₹{r.cost} / {r.unit}
+                          </small>
+                        ) : null;
+                      })}
+                  </span>
                   <button
                     className="button secondary small"
                     onClick={() => setCapture({ enquiry: detail, item: i })}
                   >
                     {detail.quotes?.some((q) => q.itemId === i.id)
-                      ? 'Update quotation'
+                      ? 'Record another offer'
                       : 'Record quotation'}
                   </button>
                 </div>
@@ -351,7 +365,7 @@ export function EnquiriesPage({
           onClose={() => setCapture(null)}
           onSave={(r) => {
             const quotes = [
-              ...(capture.enquiry.quotes ?? []).filter((q) => q.itemId !== capture.item.id),
+              ...(capture.enquiry.quotes ?? []),
               { itemId: capture.item.id, rateId: r.id },
             ];
             onRate(r, {

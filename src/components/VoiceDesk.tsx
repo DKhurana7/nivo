@@ -10,6 +10,7 @@ type Draft = {
   cost: number | null;
   basis: string;
   brand: string;
+  model?: string;
   terms: string;
   evidence: string;
 };
@@ -326,13 +327,14 @@ export function VoiceDesk({
               quotations manually.
             </p>
           )}
-          {current?.drafts.map((d) => (
-            <article className="quote-draft" key={d.itemId}>
+          {current?.drafts.map((d, index) => (
+            <article className="quote-draft" key={`${d.itemId}-${index}`}>
               <Badge>Unverified draft</Badge>
               <h4>{project?.items.find((i) => i.id === d.itemId)?.description}</h4>
               <p>
                 {d.cost === null ? 'Price unclear' : `₹${d.cost} / ${d.unit}`} · {d.basis}
               </p>
+              <p>{[d.brand, d.model].filter(Boolean).join(' / ') || 'Brand / model not stated'}</p>
               <blockquote>{d.evidence}</blockquote>
               <p>{d.terms}</p>
               <button
@@ -352,6 +354,8 @@ export function VoiceDesk({
           item={project?.items.find((i) => i.id === review.draft.itemId)}
           vendorId={enquiry.vendorId}
           draft={{
+            brand: review.draft.brand,
+            model: review.draft.model,
             cost:
               review.draft.basis === 'excluding-gst' &&
               normalUnit(review.draft.unit) ===
@@ -364,7 +368,7 @@ export function VoiceDesk({
           onClose={() => setReview(null)}
           onSave={(r) => {
             const quotes = [
-              ...(enquiry.quotes ?? []).filter((q) => q.itemId !== review.draft.itemId),
+              ...(enquiry.quotes ?? []),
               { itemId: review.draft.itemId, rateId: r.id },
             ];
             onRate(r, {

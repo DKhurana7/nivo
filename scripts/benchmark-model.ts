@@ -26,6 +26,8 @@ const brief = {
       id: 'cable-1',
       reference: '1',
       context: undefined,
+      brand: undefined,
+      model: undefined,
       description: 'FRLS copper cable',
       specification: '2.5 sq mm, supply only',
       unit: 'm',

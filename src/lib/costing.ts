@@ -68,7 +68,7 @@ export const unitCompatible = (item: Item, rate: Rate) =>
   normalUnit(item.unit) === normalUnit(rate.unit);
 export function rateCandidates(item: Item, rates: Rate[]) {
   const words = new Set(
-    `${item.description} ${item.specification}`
+    `${item.description} ${item.specification} ${item.brand ?? ''} ${item.model ?? ''}`
       .toLowerCase()
       .split(/\W+/)
       .filter((w) => w.length > 2),
@@ -77,7 +77,7 @@ export function rateCandidates(item: Item, rates: Rate[]) {
     .filter((r) => r.category === item.category && unitCompatible(item, r))
     .map((rate) => ({
       rate,
-      score: `${rate.description} ${rate.specification}`
+      score: `${rate.description} ${rate.specification} ${rate.brand ?? ''} ${rate.model ?? ''}`
         .toLowerCase()
         .split(/\W+/)
         .filter((w) => words.has(w)).length,
@@ -90,7 +90,16 @@ export function applyRate(item: Item, rate: Rate): Item {
     throw new Error('Units do not match. Convert and verify the quotation before applying it.');
   if (isStale(rate))
     throw new Error('This rate has expired. Obtain a fresh quotation before applying it.');
-  return { ...item, cost: rate.cost, assembly: undefined, rateId: rate.id, reviewed: false };
+  return {
+    ...item,
+    cost: rate.cost,
+    brand: rate.brand ?? '',
+    model: rate.model ?? '',
+    vendorId: rate.vendorId,
+    assembly: undefined,
+    rateId: rate.id,
+    reviewed: false,
+  };
 }
 export const dateLabel = (s: string) =>
   s
@@ -109,3 +118,18 @@ export const lineAmount = (i: Item, markup: number) =>
     : round(i.quantity * sellingRate(i, markup)!);
 export const assemblyCost = (a: NonNullable<Item['assembly']>) =>
   round((a.material + a.labour + a.other) * (1 + a.adjustment / 100));
+
+export const productLabel = (value: { brand?: string; model?: string }) =>
+  [value.brand, value.model].filter(Boolean).join(' / ') || 'Brand / model not specified';
+
+/** Resolve old rate-linked items for display without migrating or writing their workspace. */
+export function withOfferIdentity(item: Item, rates: Rate[]): Item {
+  const rate = rates.find((r) => r.id === item.rateId);
+  if (!rate || rate.cost !== item.cost) return item;
+  return {
+    ...item,
+    brand: item.brand ?? rate.brand,
+    model: item.model ?? rate.model,
+    vendorId: item.vendorId ?? rate.vendorId,
+  };
+}

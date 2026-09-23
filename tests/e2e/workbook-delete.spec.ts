@@ -6,6 +6,9 @@ test('removing a mapped item warns that original export is disabled for the proj
 }) => {
   await page.route('**/api/**', (route) => route.abort());
   const workspace = seedWorkspace();
+  workspace.projects[0].items.forEach((item, index) => {
+    item.sourceRow = index + 2;
+  });
   workspace.projects[0].workbookId = 'synthetic-source';
   workspace.projects[0].mapping = {
     sheet: 'Client',

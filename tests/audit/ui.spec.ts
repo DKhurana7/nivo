@@ -371,6 +371,12 @@ for (const mode of ['Local', 'Studio'] as const) {
         await button(page, 'Export BOQ').click();
         const downloading = page.waitForEvent('download');
         await button(page, name).click();
+        await expect(
+          page.getByRole('region', { name: 'Excel preview', exact: true }),
+        ).toBeVisible();
+        if (name.source.startsWith('Fill'))
+          await page.getByRole('checkbox', { name: /I understand this includes/ }).check();
+        await button(page, 'Download Excel').click();
         const dl = await downloading;
         const result = new ExcelJS.Workbook();
         await result.xlsx.readFile((await dl.path())!);
@@ -772,6 +778,7 @@ for (const mode of ['Local', 'Studio'] as const) {
       await page.getByLabel('Exact specification').fill('Supply only test');
       await page.getByLabel('Unit cost (₹)', { exact: true }).fill('125');
       await page.getByLabel('Source reference').fill('TEST-001');
+      await page.getByRole('combobox', { name: 'Vendor', exact: true }).selectOption('v3');
       await page.getByLabel('Delivery location').fill('Test city');
       await page.getByLabel('Commercial terms').fill('Supply only, excluding GST');
       await page.getByLabel('Valid until').fill('2000-01-01');
@@ -853,7 +860,7 @@ for (const mode of ['Local', 'Studio'] as const) {
       await page.getByLabel('Delivery location').fill('Test city');
       await page.getByLabel('Commercial terms').fill('Supply only, excluding GST');
       await button(page, 'Save quotation').click();
-      await expect(button(page, 'Update quotation')).toBeVisible();
+      await expect(button(page, 'Record another offer')).toBeVisible();
       await expect.poll(async () => (await saved(page)).enquiries[0].status).toBe('Quote received');
       expect((await saved(page)).projects[0].items[5].cost).toBeNull();
       verified('CTL-54 DLG-09');

@@ -1804,6 +1804,116 @@ tbody tr:hover {
   gap: 15px;
   margin-bottom: 20px;
 }
+.export-choices {
+  display: grid;
+  gap: 8px;
+}
+.export-choices button {
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--line, #d6dfe4);
+  background: transparent;
+  color: inherit;
+}
+.export-choices button[aria-pressed='true'] {
+  border-color: #315bdb;
+  background: #e9eef7;
+}
+.export-choices strong,
+.export-choices span {
+  display: block;
+}
+.export-choices span {
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1.6;
+}
+.export-choices button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.export-settings {
+  margin: 18px 0;
+}
+.export-preview {
+  margin-top: 20px;
+  min-width: 0;
+}
+.export-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.export-preview-heading h3 {
+  margin: 0;
+}
+.export-grid {
+  max-height: 370px;
+  overflow: auto;
+  border: 1px solid #d6dfe4;
+  margin-top: 12px;
+}
+.export-grid table {
+  width: max-content;
+  min-width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+}
+.export-grid td,
+.export-grid th {
+  min-width: 85px;
+  max-width: 260px;
+  padding: 8px;
+  border: 1px solid #d6dfe4;
+  vertical-align: top;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.export-grid td {
+  width: 180px;
+}
+.export-grid th:first-child {
+  min-width: 40px;
+  width: 40px;
+}
+.export-grid thead th {
+  position: sticky;
+  top: 0;
+  background: #e1e8ed;
+  z-index: 1;
+}
+.export-grid.formatted tr:nth-child(odd) td {
+  background: #f0f3f5;
+}
+.export-grid.formatted .export-header-row td {
+  background: #183247;
+  color: #f6f7f5;
+  font-weight: 600;
+}
+.export-pagination {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 12px 0;
+  font-size: 12px;
+}
+.export-pagination .button {
+  padding: 8px;
+  font-size: 12px;
+}
+.export-download {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.export-download span {
+  flex: 1;
+  overflow-wrap: anywhere;
+  min-width: 150px;
+}
 .export-options > button {
   display: flex;
   align-items: center;
@@ -3054,4 +3164,28 @@ tbody tr:hover {
     flex-direction: column;
     gap: 12px;
   }
+}
+
+.export-grid.clean td:not([colspan]) {
+  width: 100px;
+  min-width: 80px;
+}
+.export-grid.clean td:nth-child(2):not([colspan]) {
+  width: 65px;
+  min-width: 50px;
+}
+.export-grid.clean td:nth-child(3):not([colspan]) {
+  width: 210px;
+  min-width: 180px;
+}
+.export-grid.clean td:nth-child(4):not([colspan]) {
+  width: 260px;
+  min-width: 220px;
+}
+.export-grid td[colspan] {
+  max-width: none;
+}
+.capture-items small {
+  display: block;
+  margin-top: 4px;
 }

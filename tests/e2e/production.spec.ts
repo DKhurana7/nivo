@@ -44,6 +44,7 @@ test('built app works with production cookies and CSP and downloads a quotation'
   await page.getByRole('button', { name: 'Export BOQ', exact: true }).click();
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: /Client quotation/ }).click();
+  await page.getByRole('button', { name: 'Download Excel', exact: true }).click();
   expect((await downloading).suggestedFilename()).toContain('Aranya');
   await page.reload();
   await expect(page.locator('main h1')).toContainText('Aranya');
