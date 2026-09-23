@@ -6,7 +6,11 @@ const login = JSON.parse(readFileSync('data/audit-login.json', 'utf8'));
 assert.equal(login.database, 'data/audit.sqlite');
 const account = login.accounts.find((a) => a.email === 'alpha@audit.local');
 const base = 'http://127.0.0.1:8787/api';
-const headers = { 'X-Nivo-Request': '1', 'Content-Type': 'application/json', 'X-Forwarded-For':'198.18.1.5' };
+const headers = {
+  'X-Nivo-Request': '1',
+  'Content-Type': 'application/json',
+  'X-Forwarded-For': '198.18.1.5',
+};
 const response = await fetch(`${base}/login`, {
   method: 'POST',
   headers,

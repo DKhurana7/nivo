@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+test.use({ extraHTTPHeaders: { 'X-Forwarded-For': '198.18.1.2' } });
 
 test('explicit local demo, authenticated sign-in, invalid credentials and busy state', async ({
   page,

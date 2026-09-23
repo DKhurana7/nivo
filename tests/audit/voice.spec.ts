@@ -9,7 +9,7 @@ test.skip(
   'Requires the local voice stack and fictional voice fixture',
 );
 test.use({
-  extraHTTPHeaders: {'X-Forwarded-For':'198.18.1.3'},
+  extraHTTPHeaders: { 'X-Forwarded-For': '198.18.1.3' },
   permissions: ['microphone'],
   launchOptions: { args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] },
 });
@@ -26,11 +26,15 @@ test.beforeEach(async ({ page }) => {
   await page.locator('.enquiry-row').first().click();
 });
 
-test('overview does not declare configured healthy voice disconnected', async ({page})=>{
-  await page.getByRole('button',{name:'Close dialog',exact:true}).click();
-  await page.evaluate(()=>{location.hash='overview';});
-  await expect(page.locator('.voice-availability')).not.toHaveText('Voice calling is not connected');
-  await page.getByRole('button',{name:'Open enquiry desk',exact:true}).click();
+test('overview does not declare configured healthy voice disconnected', async ({ page }) => {
+  await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  await page.evaluate(() => {
+    location.hash = 'overview';
+  });
+  await expect(page.locator('.voice-availability')).not.toHaveText(
+    'Voice calling is not connected',
+  );
+  await page.getByRole('button', { name: 'Open enquiry desk', exact: true }).click();
   await page.locator('.enquiry-row').first().click();
   await expect(page.locator('.voice-desk')).toContainText('Worker connected');
 });

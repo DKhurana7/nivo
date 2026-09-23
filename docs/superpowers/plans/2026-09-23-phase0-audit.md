@@ -1,5 +1,7 @@
 # Phase 0 Audit and Fix Implementation Plan
 
+> Execution completed 23 September 2026. All 12 tasks have been carried out; see the newest HANDOVER.md checkpoint for final evidence, adaptations and runtime state. Task 11 extended the existing studio browser suite with real two-tab conflicts and workbook-byte backup/restore assertions instead of adding the illustrative stub below. All 218 inventory rows have recorded results; six findings are fixed and two are explicitly deferred. The checklist below is the original execution recipe, not the current status tracker.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Establish, with recorded evidence, which of Nivo's user-facing behaviours work and which do not, and fix every Blocker and Major defect found, so that Phase 1's tenancy rewrite starts from a known-good base.
@@ -28,18 +30,18 @@
 
 ## File Structure
 
-| Path | Responsibility | Status |
-| --- | --- | --- |
-| `docs/audit/ENVIRONMENT.md` | Exact versions, PIDs, ports and baseline suite results at audit start | Create |
-| `docs/audit/INVENTORY.md` | Complete checklist of verifiable behaviours, one row each, with a result column | Create |
-| `docs/audit/FINDINGS.md` | Every defect: id, severity, reproduction, observed, expected, suspected file | Create |
-| `tests/costing.test.ts` | Domain invariant tests; gains boundary and null-semantics cases | Modify |
-| `tests/regressions/` | One file per fixed defect, named for its finding id | Create |
-| `server/tests/isolation.test.ts` | Tenant isolation proven by direct API request across two accounts | Create |
-| `tests/e2e/characterisation.spec.ts` | Current correct behaviour of flows Phase 1 will rewrite | Create |
-| `scripts/audit-env.mjs` | Provisions an isolated audit database and two fictional accounts | Create |
-| `HANDOVER.md` | Updated to verified reality at phase end | Modify |
-| `CODEBASE_REFERENCE.md` | Corrected wherever the audit contradicts it | Modify |
+| Path                                 | Responsibility                                                                  | Status |
+| ------------------------------------ | ------------------------------------------------------------------------------- | ------ |
+| `docs/audit/ENVIRONMENT.md`          | Exact versions, PIDs, ports and baseline suite results at audit start           | Create |
+| `docs/audit/INVENTORY.md`            | Complete checklist of verifiable behaviours, one row each, with a result column | Create |
+| `docs/audit/FINDINGS.md`             | Every defect: id, severity, reproduction, observed, expected, suspected file    | Create |
+| `tests/costing.test.ts`              | Domain invariant tests; gains boundary and null-semantics cases                 | Modify |
+| `tests/regressions/`                 | One file per fixed defect, named for its finding id                             | Create |
+| `server/tests/isolation.test.ts`     | Tenant isolation proven by direct API request across two accounts               | Create |
+| `tests/e2e/characterisation.spec.ts` | Current correct behaviour of flows Phase 1 will rewrite                         | Create |
+| `scripts/audit-env.mjs`              | Provisions an isolated audit database and two fictional accounts                | Create |
+| `HANDOVER.md`                        | Updated to verified reality at phase end                                        | Modify |
+| `CODEBASE_REFERENCE.md`              | Corrected wherever the audit contradicts it                                     | Modify |
 
 Source files under `src/` and `server/` are modified only in Pass 3, only to fix a recorded finding.
 
@@ -50,10 +52,12 @@ Source files under `src/` and `server/` are modified only in Pass 3, only to fix
 Establishes a reproducible starting point. Without this, a later failure cannot be distinguished from a stale process.
 
 **Files:**
+
 - Create: `scripts/audit-env.mjs`
 - Create: `docs/audit/ENVIRONMENT.md`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: an isolated database at `data/audit.sqlite` containing exactly two accounts, `alpha@audit.local` and `beta@audit.local`, whose generated passwords are written to `data/audit-login.json` (ignored, never printed). Later tasks read that file. Also produces the recorded baseline suite results that Pass 3 compares against.
 
@@ -143,11 +147,10 @@ const accounts = [
 
 const created = accounts.map(({ email, studio }) => {
   const password = randomBytes(18).toString('base64url');
-  execFileSync(
-    'node',
-    ['--import', 'tsx', 'server/create-user.ts', email, studio],
-    { env: { ...process.env, DATABASE_PATH: DB, NIVO_PASSWORD: password }, stdio: 'inherit' },
-  );
+  execFileSync('node', ['--import', 'tsx', 'server/create-user.ts', email, studio], {
+    env: { ...process.env, DATABASE_PATH: DB, NIVO_PASSWORD: password },
+    stdio: 'inherit',
+  });
   return { email, studio, password };
 });
 
@@ -202,9 +205,11 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ## Task 2: Inventory the frontend surface
 
 **Files:**
+
 - Create: `docs/audit/INVENTORY.md`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: inventory rows with ids `SCR-*`, `CTL-*`, `FLT-*`, `DLG-*`. Every later verification task fills the `Result` column of rows it covers. Ids are stable and referenced by findings.
 
@@ -230,16 +235,16 @@ Result values: PASS, FAIL (with finding id), N/A (with reason), BLOCKED (with re
 
 ## Screens and routes
 
-| Id | Route | Component | Correct behaviour | Local | Studio |
-| --- | --- | --- | --- | --- | --- |
-| SCR-01 | `#overview` | `WorkspacePages.tsx` | Renders; next-deadline panel excludes undated projects | | |
-| SCR-02 | `#projects` | `WorkspacePages.tsx` | Lists all projects; selecting one navigates to BOQ | | |
-| SCR-03 | `#boq` | `BoqPage.tsx` | Renders selected project; falls back to first project after reload | | |
-| SCR-04 | `#rates` | `WorkspacePages.tsx` | Lists rate evidence; expired rates visibly marked | | |
-| SCR-05 | `#vendors` | `WorkspacePages.tsx` | Lists vendors; supports create and edit | | |
-| SCR-06 | `#enquiries` | `EnquiriesPage.tsx` | Item selection, vendor brief, voice desk | | |
-| SCR-07 | `#settings` | `SettingsPage.tsx` | Defaults, backup, restore, reset, signout | | |
-| SCR-08 | unknown hash | `App.tsx:23` | Any unrecognised hash falls back to overview | | |
+| Id     | Route        | Component            | Correct behaviour                                                  | Local | Studio |
+| ------ | ------------ | -------------------- | ------------------------------------------------------------------ | ----- | ------ |
+| SCR-01 | `#overview`  | `WorkspacePages.tsx` | Renders; next-deadline panel excludes undated projects             |       |        |
+| SCR-02 | `#projects`  | `WorkspacePages.tsx` | Lists all projects; selecting one navigates to BOQ                 |       |        |
+| SCR-03 | `#boq`       | `BoqPage.tsx`        | Renders selected project; falls back to first project after reload |       |        |
+| SCR-04 | `#rates`     | `WorkspacePages.tsx` | Lists rate evidence; expired rates visibly marked                  |       |        |
+| SCR-05 | `#vendors`   | `WorkspacePages.tsx` | Lists vendors; supports create and edit                            |       |        |
+| SCR-06 | `#enquiries` | `EnquiriesPage.tsx`  | Item selection, vendor brief, voice desk                           |       |        |
+| SCR-07 | `#settings`  | `SettingsPage.tsx`   | Defaults, backup, restore, reset, signout                          |       |        |
+| SCR-08 | unknown hash | `App.tsx:23`         | Any unrecognised hash falls back to overview                       |       |        |
 ```
 
 - [ ] **Step 3: Add filter and search rows**
@@ -249,16 +254,16 @@ These are the concrete filters found in `BoqPage.tsx:40-42` and `:78-83`.
 ```markdown
 ## Filters, search and sort
 
-| Id | Location | Correct behaviour | Local | Studio |
-| --- | --- | --- | --- | --- |
-| FLT-01 | `BoqPage.tsx:41` category select | Filtering by a category shows only that category; "All items" shows all | | |
-| FLT-02 | `BoqPage.tsx:42` status tab "All" | Shows every item | | |
-| FLT-03 | status tab "Unpriced" | Shows exactly items where `cost === null`; a zero cost is NOT unpriced | | |
-| FLT-04 | status tab "Needs review" | Shows exactly items where `reviewed === false` | | |
-| FLT-05 | `BoqPage.tsx:40` search | Matches description and specification; case-insensitive | | |
-| FLT-06 | combined | Category + status + search compose with AND, not OR | | |
-| FLT-07 | `BoqPage.tsx:366` count | "N of M items" reflects the filtered and total counts accurately | | |
-| FLT-08 | `BoqPage.tsx:130` project select | Switching project resets or correctly re-applies filters without showing stale rows | | |
+| Id     | Location                          | Correct behaviour                                                                   | Local | Studio |
+| ------ | --------------------------------- | ----------------------------------------------------------------------------------- | ----- | ------ |
+| FLT-01 | `BoqPage.tsx:41` category select  | Filtering by a category shows only that category; "All items" shows all             |       |        |
+| FLT-02 | `BoqPage.tsx:42` status tab "All" | Shows every item                                                                    |       |        |
+| FLT-03 | status tab "Unpriced"             | Shows exactly items where `cost === null`; a zero cost is NOT unpriced              |       |        |
+| FLT-04 | status tab "Needs review"         | Shows exactly items where `reviewed === false`                                      |       |        |
+| FLT-05 | `BoqPage.tsx:40` search           | Matches description and specification; case-insensitive                             |       |        |
+| FLT-06 | combined                          | Category + status + search compose with AND, not OR                                 |       |        |
+| FLT-07 | `BoqPage.tsx:366` count           | "N of M items" reflects the filtered and total counts accurately                    |       |        |
+| FLT-08 | `BoqPage.tsx:130` project select  | Switching project resets or correctly re-applies filters without showing stale rows |       |        |
 ```
 
 - [ ] **Step 4: Add dialog rows**
@@ -268,17 +273,17 @@ From the `useState` flags at `BoqPage.tsx:38-50` and equivalents in other compon
 ```markdown
 ## Dialogs
 
-| Id | Trigger | Correct behaviour | Local | Studio |
-| --- | --- | --- | --- | --- |
-| DLG-01 | Project details | Opens, traps focus, Escape closes, focus returns to trigger | | |
-| DLG-02 | Delete project | Requires explicit confirmation; cancel makes no change | | |
-| DLG-03 | Edit item / new item | Saves changes; cancel discards | | |
-| DLG-04 | Rate matching | Lists candidates by `rateCandidates`; applying requires confirmation | | |
-| DLG-05 | Import workbook | Full mapping flow; see WBK rows | | |
-| DLG-06 | Export | Offers the three exports; see EXP rows | | |
-| DLG-07 | Pricing / assembly | Accepts material, labour, other, adjustment | | |
-| DLG-08 | Delete item | Requires confirmation; removes exactly one item | | |
-| DLG-09 | nested quotation dialogs | Distinct accessible names, per `CODEBASE_REFERENCE.md` | | |
+| Id     | Trigger                  | Correct behaviour                                                    | Local | Studio |
+| ------ | ------------------------ | -------------------------------------------------------------------- | ----- | ------ |
+| DLG-01 | Project details          | Opens, traps focus, Escape closes, focus returns to trigger          |       |        |
+| DLG-02 | Delete project           | Requires explicit confirmation; cancel makes no change               |       |        |
+| DLG-03 | Edit item / new item     | Saves changes; cancel discards                                       |       |        |
+| DLG-04 | Rate matching            | Lists candidates by `rateCandidates`; applying requires confirmation |       |        |
+| DLG-05 | Import workbook          | Full mapping flow; see WBK rows                                      |       |        |
+| DLG-06 | Export                   | Offers the three exports; see EXP rows                               |       |        |
+| DLG-07 | Pricing / assembly       | Accepts material, labour, other, adjustment                          |       |        |
+| DLG-08 | Delete item              | Requires confirmation; removes exactly one item                      |       |        |
+| DLG-09 | nested quotation dialogs | Distinct accessible names, per `CODEBASE_REFERENCE.md`               |       |        |
 ```
 
 - [ ] **Step 5: Add a row per interactive control**
@@ -303,9 +308,11 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ## Task 3: Inventory the backend, export and domain surface
 
 **Files:**
+
 - Modify: `docs/audit/INVENTORY.md`
 
 **Interfaces:**
+
 - Consumes: `docs/audit/INVENTORY.md` from Task 2.
 - Produces: rows `API-*`, `EXP-*`, `BAK-*`, `VOI-*`, `INV-*`.
 
@@ -316,35 +323,35 @@ The sixteen endpoints registered in `server/app.ts`. Each gets a success row and
 ```markdown
 ## API endpoints
 
-| Id | Endpoint | Correct behaviour | Result |
-| --- | --- | --- | --- |
-| API-01 | `GET /api/health` | 200 without authentication | |
-| API-02 | `GET /api/session` | Returns session when authenticated; unauthenticated shape is safe | |
-| API-03 | `POST /api/login` | Valid credentials set an HttpOnly SameSite=Strict cookie | |
-| API-04 | `POST /api/login` wrong password | Rejected; no cookie; rate limited on repeat | |
-| API-05 | `POST /api/logout` | Invalidates the session; subsequent calls unauthorised | |
-| API-06 | `GET /api/workspace` | Returns only the authenticated account's workspace | |
-| API-07 | `PUT /api/workspace` | Saves with a matching revision | |
-| API-08 | `PUT /api/workspace` stale revision | Returns 409 and does NOT overwrite | |
-| API-09 | `PUT /api/workspace` invalid body | Rejected by shared validation, not persisted | |
-| API-10 | `PUT /api/files/:id` | Stores workbook bytes; enforces the 10 MB body limit | |
-| API-11 | `GET /api/files/:id` | Returns bytes byte-identical to what was stored | |
-| API-12 | `GET /api/voice/status` | Reports provider availability without leaking any secret | |
-| API-13 | `GET /api/calls` | Lists only the authenticated account's calls | |
-| API-14 | `GET /api/calls/:id` | Own call returns 200; another account's returns 404 or 403, never content | |
-| API-15 | `POST /api/calls` | Creates a call; a repeated request id is idempotent | |
-| API-16 | `POST /api/calls` phone mode | Refused while `ENABLE_OUTBOUND_CALLS=false` | |
-| API-17 | `POST /api/calls/:id/end` | Ends the call; ending an already-ended call is harmless | |
-| API-18 | `GET /api/agent/calls/:id` | Requires a valid HMAC; returns the brief without internal prices | |
-| API-19 | `POST /api/agent/events` | Valid signature accepted | |
-| API-20 | `POST /api/agent/events` bad signature | Rejected 401 | |
-| API-21 | `POST /api/agent/events` replayed event id | Rejected, does not duplicate the transcript | |
-| API-22 | `POST /api/agent/events` expired timestamp | Rejected outside the five-minute window | |
-| API-23 | `POST /api/agent/events` late event on terminal call | Does NOT reopen the call | |
-| API-24 | `POST /api/agent/events` null payload | Returns 400, not 500 | |
-| API-25 | `POST /api/calls/:id/extract` | Produces a validated draft or a clear error | |
-| API-26 | any mutation without the same-origin header | Rejected | |
-| API-27 | any authenticated route without a cookie | 401, never partial data | |
+| Id     | Endpoint                                             | Correct behaviour                                                         | Result |
+| ------ | ---------------------------------------------------- | ------------------------------------------------------------------------- | ------ |
+| API-01 | `GET /api/health`                                    | 200 without authentication                                                |        |
+| API-02 | `GET /api/session`                                   | Returns session when authenticated; unauthenticated shape is safe         |        |
+| API-03 | `POST /api/login`                                    | Valid credentials set an HttpOnly SameSite=Strict cookie                  |        |
+| API-04 | `POST /api/login` wrong password                     | Rejected; no cookie; rate limited on repeat                               |        |
+| API-05 | `POST /api/logout`                                   | Invalidates the session; subsequent calls unauthorised                    |        |
+| API-06 | `GET /api/workspace`                                 | Returns only the authenticated account's workspace                        |        |
+| API-07 | `PUT /api/workspace`                                 | Saves with a matching revision                                            |        |
+| API-08 | `PUT /api/workspace` stale revision                  | Returns 409 and does NOT overwrite                                        |        |
+| API-09 | `PUT /api/workspace` invalid body                    | Rejected by shared validation, not persisted                              |        |
+| API-10 | `PUT /api/files/:id`                                 | Stores workbook bytes; enforces the 10 MB body limit                      |        |
+| API-11 | `GET /api/files/:id`                                 | Returns bytes byte-identical to what was stored                           |        |
+| API-12 | `GET /api/voice/status`                              | Reports provider availability without leaking any secret                  |        |
+| API-13 | `GET /api/calls`                                     | Lists only the authenticated account's calls                              |        |
+| API-14 | `GET /api/calls/:id`                                 | Own call returns 200; another account's returns 404 or 403, never content |        |
+| API-15 | `POST /api/calls`                                    | Creates a call; a repeated request id is idempotent                       |        |
+| API-16 | `POST /api/calls` phone mode                         | Refused while `ENABLE_OUTBOUND_CALLS=false`                               |        |
+| API-17 | `POST /api/calls/:id/end`                            | Ends the call; ending an already-ended call is harmless                   |        |
+| API-18 | `GET /api/agent/calls/:id`                           | Requires a valid HMAC; returns the brief without internal prices          |        |
+| API-19 | `POST /api/agent/events`                             | Valid signature accepted                                                  |        |
+| API-20 | `POST /api/agent/events` bad signature               | Rejected 401                                                              |        |
+| API-21 | `POST /api/agent/events` replayed event id           | Rejected, does not duplicate the transcript                               |        |
+| API-22 | `POST /api/agent/events` expired timestamp           | Rejected outside the five-minute window                                   |        |
+| API-23 | `POST /api/agent/events` late event on terminal call | Does NOT reopen the call                                                  |        |
+| API-24 | `POST /api/agent/events` null payload                | Returns 400, not 500                                                      |        |
+| API-25 | `POST /api/calls/:id/extract`                        | Produces a validated draft or a clear error                               |        |
+| API-26 | any mutation without the same-origin header          | Rejected                                                                  |        |
+| API-27 | any authenticated route without a cookie             | 401, never partial data                                                   |        |
 ```
 
 - [ ] **Step 2: Add export, backup and workbook rows**
@@ -352,25 +359,25 @@ The sixteen endpoints registered in `server/app.ts`. Each gets a success row and
 ```markdown
 ## Exports, backup and workbook
 
-| Id | Behaviour | Correct behaviour | Result |
-| --- | --- | --- | --- |
-| EXP-01 | Client quotation export | Opens in Excel; contains selling rates; contains NO purchase cost and no original private sheet | |
-| EXP-02 | Internal costing export | Opens in Excel; contains costs and selling prices | |
-| EXP-03 | Original workbook export | Opens in Excel; unrelated sheets and formulas intact; recalculation requested | |
-| EXP-04 | Original export after structural edit | Refused, per the documented rule that structural edits disable mapping | |
-| EXP-05 | Original export with a formula in a mapped rate cell | Refused, naming the exact cell address | |
-| EXP-06 | Unpriced line in original export | Retains its original source cell rather than being blanked | |
-| BAK-01 | JSON backup, local mode | Downloads; contains the workspace and base64 workbook | |
-| BAK-02 | JSON restore, local mode | Restores to an identical workspace | |
-| BAK-03 | JSON backup and restore, studio mode | Round-trips through the API | |
-| BAK-04 | Studio reset | Clears the workspace; documented to leave calls and audit intact | |
-| WBK-01 | Import a valid XLSX | Mapping, preview, warnings, then items created | |
-| WBK-02 | Import over the 10 MB limit | Rejected with a clear message | |
-| WBK-03 | Import over 10,000 rows or 100 columns | Rejected with a clear message | |
-| WBK-04 | Merged quantity continuation rows | Attach to the anchor item, no duplicate line | |
-| WBK-05 | Zero source rate on import | Treated as a placeholder, not as a real zero cost | |
-| WBK-06 | Manually entered zero cost | Remains an intentional zero, distinct from unpriced | |
-| WBK-07 | Round trip | Imported bytes retrieved from storage hash-match the original file | |
+| Id     | Behaviour                                            | Correct behaviour                                                                               | Result |
+| ------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------ |
+| EXP-01 | Client quotation export                              | Opens in Excel; contains selling rates; contains NO purchase cost and no original private sheet |        |
+| EXP-02 | Internal costing export                              | Opens in Excel; contains costs and selling prices                                               |        |
+| EXP-03 | Original workbook export                             | Opens in Excel; unrelated sheets and formulas intact; recalculation requested                   |        |
+| EXP-04 | Original export after structural edit                | Refused, per the documented rule that structural edits disable mapping                          |        |
+| EXP-05 | Original export with a formula in a mapped rate cell | Refused, naming the exact cell address                                                          |        |
+| EXP-06 | Unpriced line in original export                     | Retains its original source cell rather than being blanked                                      |        |
+| BAK-01 | JSON backup, local mode                              | Downloads; contains the workspace and base64 workbook                                           |        |
+| BAK-02 | JSON restore, local mode                             | Restores to an identical workspace                                                              |        |
+| BAK-03 | JSON backup and restore, studio mode                 | Round-trips through the API                                                                     |        |
+| BAK-04 | Studio reset                                         | Clears the workspace; documented to leave calls and audit intact                                |        |
+| WBK-01 | Import a valid XLSX                                  | Mapping, preview, warnings, then items created                                                  |        |
+| WBK-02 | Import over the 10 MB limit                          | Rejected with a clear message                                                                   |        |
+| WBK-03 | Import over 10,000 rows or 100 columns               | Rejected with a clear message                                                                   |        |
+| WBK-04 | Merged quantity continuation rows                    | Attach to the anchor item, no duplicate line                                                    |        |
+| WBK-05 | Zero source rate on import                           | Treated as a placeholder, not as a real zero cost                                               |        |
+| WBK-06 | Manually entered zero cost                           | Remains an intentional zero, distinct from unpriced                                             |        |
+| WBK-07 | Round trip                                           | Imported bytes retrieved from storage hash-match the original file                              |        |
 ```
 
 - [ ] **Step 3: Add voice and domain invariant rows**
@@ -378,38 +385,38 @@ The sixteen endpoints registered in `server/app.ts`. Each gets a success row and
 ```markdown
 ## Voice (browser WebRTC only; no telephone call)
 
-| Id | Behaviour | Correct behaviour | Result |
-| --- | --- | --- | --- |
-| VOI-01 | Voice status panel | Reports readiness accurately when the worker is up and when it is down | |
-| VOI-02 | Start browser test call | Connects; disclosure is spoken and transcribed | |
-| VOI-03 | Mute and unmute | Both take effect | |
-| VOI-04 | End call | Ends; the room is deleted | |
-| VOI-05 | Close the desk mid-setup | Setup cancels; no orphan room is left | |
-| VOI-06 | Enquiry above 20 items | The voice limit is shown | |
-| VOI-07 | Phone call button | Gated and refused while outbound calls are disabled | |
-| VOI-08 | Second concurrent call | Refused; one active call per studio | |
-| VOI-09 | Worker down | Call creation refused rather than hanging | |
-| VOI-10 | Extraction draft review | Draft never changes a price automatically; evidence survives save | |
+| Id     | Behaviour                | Correct behaviour                                                      | Result |
+| ------ | ------------------------ | ---------------------------------------------------------------------- | ------ |
+| VOI-01 | Voice status panel       | Reports readiness accurately when the worker is up and when it is down |        |
+| VOI-02 | Start browser test call  | Connects; disclosure is spoken and transcribed                         |        |
+| VOI-03 | Mute and unmute          | Both take effect                                                       |        |
+| VOI-04 | End call                 | Ends; the room is deleted                                              |        |
+| VOI-05 | Close the desk mid-setup | Setup cancels; no orphan room is left                                  |        |
+| VOI-06 | Enquiry above 20 items   | The voice limit is shown                                               |        |
+| VOI-07 | Phone call button        | Gated and refused while outbound calls are disabled                    |        |
+| VOI-08 | Second concurrent call   | Refused; one active call per studio                                    |        |
+| VOI-09 | Worker down              | Call creation refused rather than hanging                              |        |
+| VOI-10 | Extraction draft review  | Draft never changes a price automatically; evidence survives save      |        |
 
 ## Domain invariants
 
-| Id | Invariant | Result |
-| --- | --- | --- |
-| INV-01 | Null cost is unpriced and distinct from zero cost | |
-| INV-02 | Null quantity never silently becomes zero | |
-| INV-03 | Rate-only keeps a selling rate and has no line amount | |
-| INV-04 | Unknown quantity has no amount and blocks approval | |
-| INV-05 | `assemblyCost` rounds `(material+labour+other) × (1+adjustment/100)` | |
-| INV-06 | `sellingRate` rounds `cost × (1+markup/100)`, markup on cost | |
-| INV-07 | `markupOverride` takes precedence over project markup | |
-| INV-08 | Line amount rounds `quantity × rounded selling rate` | |
-| INV-09 | GST applies to the subtotal | |
-| INV-10 | Applying a quote clears review state and assembly | |
-| INV-11 | Editing cost, spec, quantity or pricing reopens Draft | |
-| INV-12 | Approval requires priced lines, resolved quantities, unexpired evidence | |
-| INV-13 | `applyRate` refuses mismatched units | |
-| INV-14 | `applyRate` refuses expired evidence | |
-| INV-15 | `normalUnit` aliases resolve correctly and do not over-merge | |
+| Id     | Invariant                                                               | Result |
+| ------ | ----------------------------------------------------------------------- | ------ |
+| INV-01 | Null cost is unpriced and distinct from zero cost                       |        |
+| INV-02 | Null quantity never silently becomes zero                               |        |
+| INV-03 | Rate-only keeps a selling rate and has no line amount                   |        |
+| INV-04 | Unknown quantity has no amount and blocks approval                      |        |
+| INV-05 | `assemblyCost` rounds `(material+labour+other) × (1+adjustment/100)`    |        |
+| INV-06 | `sellingRate` rounds `cost × (1+markup/100)`, markup on cost            |        |
+| INV-07 | `markupOverride` takes precedence over project markup                   |        |
+| INV-08 | Line amount rounds `quantity × rounded selling rate`                    |        |
+| INV-09 | GST applies to the subtotal                                             |        |
+| INV-10 | Applying a quote clears review state and assembly                       |        |
+| INV-11 | Editing cost, spec, quantity or pricing reopens Draft                   |        |
+| INV-12 | Approval requires priced lines, resolved quantities, unexpired evidence |        |
+| INV-13 | `applyRate` refuses mismatched units                                    |        |
+| INV-14 | `applyRate` refuses expired evidence                                    |        |
+| INV-15 | `normalUnit` aliases resolve correctly and do not over-merge            |        |
 ```
 
 - [ ] **Step 2b: Record two standing hypotheses**
@@ -452,10 +459,12 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 Highest value per unit of effort: these are pure functions, fully testable, and they decide whether a quotation is correct.
 
 **Files:**
+
 - Modify: `tests/costing.test.ts`
 - Modify: `docs/audit/INVENTORY.md`, `docs/audit/FINDINGS.md`
 
 **Interfaces:**
+
 - Consumes: inventory rows `INV-01` to `INV-15`; hypotheses `H-01`, `H-02`.
 - Produces: results for those rows, and a finding per failure.
 
@@ -471,7 +480,14 @@ Append to `tests/costing.test.ts`. These assert the documented rules, so a failu
 
 ```typescript
 import { describe, expect, it } from 'vitest';
-import { assemblyCost, isStale, lineAmount, sellingRate, totals, unitCompatible } from '../src/lib/costing';
+import {
+  assemblyCost,
+  isStale,
+  lineAmount,
+  sellingRate,
+  totals,
+  unitCompatible,
+} from '../src/lib/costing';
 import type { Item, Project, Rate } from '../src/lib/types';
 
 const item = (over: Partial<Item> = {}): Item => ({
@@ -596,10 +612,12 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 Done before Phase 1 because Phase 1 multiplies the consequence of any weakness here.
 
 **Files:**
+
 - Create: `server/tests/isolation.test.ts`
 - Modify: `docs/audit/INVENTORY.md`, `docs/audit/FINDINGS.md`
 
 **Interfaces:**
+
 - Consumes: `data/audit-login.json` from Task 1; inventory rows `API-01` to `API-27`.
 - Produces: results for those rows; a failure here is a Blocker by definition.
 
@@ -765,10 +783,12 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 The exports are the product's output. A corrupt export passes a click test and fails a real one, so every export is opened and inspected.
 
 **Files:**
+
 - Modify: `docs/audit/INVENTORY.md`, `docs/audit/FINDINGS.md`
 - Create: `tests/regressions/` entries only if a defect is found
 
 **Interfaces:**
+
 - Consumes: inventory rows `EXP-01` to `EXP-06`, `WBK-01` to `WBK-07`, `BAK-01` to `BAK-04`.
 - Produces: results for those rows.
 
@@ -858,9 +878,11 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ## Task 7: Verify the local demo mode walkthrough
 
 **Files:**
+
 - Modify: `docs/audit/INVENTORY.md`, `docs/audit/FINDINGS.md`
 
 **Interfaces:**
+
 - Consumes: all `SCR-*`, `CTL-*`, `FLT-*`, `DLG-*` rows; fills the `Local` column.
 - Produces: the Local result for each.
 
@@ -919,9 +941,11 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 Same surface, different persistence path. Skipping this because local mode passed would miss every sync, revision and file defect.
 
 **Files:**
+
 - Modify: `docs/audit/INVENTORY.md`, `docs/audit/FINDINGS.md`
 
 **Interfaces:**
+
 - Consumes: the same rows as Task 7; fills the `Studio` column.
 - Produces: the Studio result for each.
 
@@ -979,9 +1003,11 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ## Task 9: Verify the voice desk over browser WebRTC
 
 **Files:**
+
 - Modify: `docs/audit/INVENTORY.md`, `docs/audit/FINDINGS.md`
 
 **Interfaces:**
+
 - Consumes: inventory rows `VOI-01` to `VOI-10`.
 - Produces: results for those rows. `VOI-07` verifies a refusal, not a call.
 
@@ -1057,11 +1083,13 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 Repeat this task's procedure once per finding, Blockers first, then Majors, then cheap Minors.
 
 **Files:**
+
 - Create: `tests/regressions/F-<nn>.test.ts` or the suite appropriate to the layer
 - Modify: the source file responsible
 - Modify: `docs/audit/FINDINGS.md`
 
 **Interfaces:**
+
 - Consumes: `docs/audit/FINDINGS.md`.
 - Produces: a fixed source tree and a regression test per fix.
 
@@ -1122,9 +1150,11 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 Describes current correct behaviour so Phase 1 has a safety net. Deliberately narrow: only what Phase 1 replaces.
 
 **Files:**
+
 - Create: `tests/e2e/characterisation.spec.ts`
 
 **Interfaces:**
+
 - Consumes: verified behaviour from Tasks 5 and 8.
 - Produces: tests Phase 1 must keep passing, or consciously and explicitly update.
 
@@ -1196,9 +1226,11 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ## Task 12: Final gate and truthful documentation
 
 **Files:**
+
 - Modify: `HANDOVER.md`, `CODEBASE_REFERENCE.md`, `docs/audit/INVENTORY.md`, `docs/audit/FINDINGS.md`
 
 **Interfaces:**
+
 - Consumes: everything above.
 - Produces: the phase's exit evidence, and the deferred-findings list that Phase 1's spec consumes.
 

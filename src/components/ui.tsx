@@ -174,8 +174,11 @@ export function Modal({
           e.currentTarget.querySelectorAll<HTMLElement>(
             'button, input, select, textarea, a[href], summary, [tabindex]',
           ),
-        ).filter((node) => node.tabIndex >= 0 && !node.matches(':disabled') && node.checkVisibility());
-        const first = controls[0], last = controls.at(-1);
+        ).filter(
+          (node) => node.tabIndex >= 0 && !node.matches(':disabled') && node.checkVisibility(),
+        );
+        const first = controls[0],
+          last = controls.at(-1);
         if (e.shiftKey && document.activeElement === first) {
           e.preventDefault();
           last?.focus();

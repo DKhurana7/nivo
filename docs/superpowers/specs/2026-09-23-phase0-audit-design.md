@@ -48,17 +48,17 @@ nothing is silently skipped.
 
 Rows are grouped by surface:
 
-| Surface | Source of truth | Approximate size |
-| --- | --- | --- |
-| Screens and routes | `src/App.tsx` navigation table and hash router | 7 routes |
+| Surface              | Source of truth                                                                              | Approximate size          |
+| -------------------- | -------------------------------------------------------------------------------------------- | ------------------------- |
+| Screens and routes   | `src/App.tsx` navigation table and hash router                                               | 7 routes                  |
 | Interactive controls | `<button>`, `<input>`, `<select>`, `<textarea>`, `onClick`, `onChange`, `onSubmit` in `src/` | ~102 buttons, ~114 inputs |
-| Filters and sorts | `BoqPage.tsx`, `WorkspacePages.tsx` | to be enumerated |
-| Dialogs | `components/ui.tsx` dialog usages | to be enumerated |
-| Exports | `spreadsheet.ts`, `workbook-patch.ts` | 3 export paths |
-| Backup and restore | `backup.ts`, `SettingsPage.tsx` | 2 paths |
-| API endpoints | `server/app.ts` route registrations | 16 endpoints |
-| Voice actions | `VoiceDesk.tsx`, `server/voice.ts` | to be enumerated |
-| Domain invariants | the invariant list in `CODEBASE_REFERENCE.md` | ~10 rules |
+| Filters and sorts    | `BoqPage.tsx`, `WorkspacePages.tsx`                                                          | to be enumerated          |
+| Dialogs              | `components/ui.tsx` dialog usages                                                            | to be enumerated          |
+| Exports              | `spreadsheet.ts`, `workbook-patch.ts`                                                        | 3 export paths            |
+| Backup and restore   | `backup.ts`, `SettingsPage.tsx`                                                              | 2 paths                   |
+| API endpoints        | `server/app.ts` route registrations                                                          | 16 endpoints              |
+| Voice actions        | `VoiceDesk.tsx`, `server/voice.ts`                                                           | to be enumerated          |
+| Domain invariants    | the invariant list in `CODEBASE_REFERENCE.md`                                                | ~10 rules                 |
 
 Counts shown as "to be enumerated" are outputs of Pass 1 rather than gaps
 in this document; stating a number here would be a guess.
@@ -176,13 +176,13 @@ consequences of any weakness here:
 
 ## Deliverables
 
-| Path | Contents |
-| --- | --- |
-| `docs/audit/INVENTORY.md` | Complete checklist with a result per row |
-| `docs/audit/FINDINGS.md` | Every defect, with reproduction and severity |
-| Source changes | Fixes, each with a failing-first regression test |
-| `HANDOVER.md` | Updated to reflect verified reality |
-| `CODEBASE_REFERENCE.md` | Corrected where the audit contradicts it |
+| Path                      | Contents                                         |
+| ------------------------- | ------------------------------------------------ |
+| `docs/audit/INVENTORY.md` | Complete checklist with a result per row         |
+| `docs/audit/FINDINGS.md`  | Every defect, with reproduction and severity     |
+| Source changes            | Fixes, each with a failing-first regression test |
+| `HANDOVER.md`             | Updated to reflect verified reality              |
+| `CODEBASE_REFERENCE.md`   | Corrected where the audit contradicts it         |
 
 Work is committed incrementally: inventory, then findings, then one commit
 per fix or per closely related group of fixes. This keeps the diff

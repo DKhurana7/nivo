@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test';
 import { makeApp } from '../../server/app';
 import { database, addUser } from '../../server/db';
 import { seedWorkspace } from '../../src/lib/seed';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import ExcelJS from 'exceljs';
 const password = randomBytes(20).toString('hex');
 const db = database(':memory:');
 const id = addUser(db, 'pilot@example.test', password, 'Pilot Studio');
@@ -17,8 +19,8 @@ test.afterAll(async () => {
   await app.close();
   db.close();
 });
-test.beforeEach(async ({ page }) => {
-  await page.route('**/api/**', async (route) => {
+test.beforeEach(async ({ context }) => {
+  await context.route('**/api/**', async (route) => {
     const url = new URL(route.request().url());
     const response = await route.fetch({
       url: `http://127.0.0.1:8789${url.pathname}${url.search}`,
@@ -69,14 +71,35 @@ test('studio login, server save/reload, voice readiness, signout and responsive 
   await page.getByRole('button', { name: 'Sign out of studio' }).click();
   await expect(page.getByRole('heading', { name: 'Enter your studio' })).toBeVisible();
 });
-test('conflicting studio session preserves the local pending changes', async ({ page }) => {
+test('two studio tabs reject a stale project save and export pending changes', async ({
+  page,
+  context,
+}) => {
   await signIn(page);
-  await page.goto('/#settings');
-  db.prepare('UPDATE workspaces SET revision=revision+1 WHERE user_id=?').run(id);
-  await page.getByLabel('Studio name').fill('Unsaved conflicting edit');
-  await page.getByRole('button', { name: 'Save studio details' }).click();
-  await expect(page.getByRole('alert')).toContainText('Another session changed');
-  await expect(page.getByLabel('Studio name')).toHaveValue('Unsaved conflicting edit');
+  const other = await context.newPage();
+  await other.goto('/#boq');
+  await other.getByLabel('Choose project').selectOption('p2');
+  await other.getByRole('button', { name: 'Project details', exact: true }).click();
+  await page.goto('/#boq');
+  await page.getByRole('button', { name: 'Project details', exact: true }).click();
+  await page.getByLabel('Project name').fill('First tab saved project');
+  await page.getByRole('button', { name: 'Save project details', exact: true }).click();
+  const stored = () =>
+    JSON.parse((db.prepare('SELECT data FROM workspaces WHERE user_id=?').get(id) as any).data);
+  await expect.poll(() => stored().projects[0].name).toBe('First tab saved project');
+  await other.getByLabel('Project name').fill('Second tab pending project');
+  await other.getByRole('button', { name: 'Save project details', exact: true }).click();
+  await expect(other.getByRole('alert')).toContainText('Another session changed');
+  await expect(other.locator('main h1')).toHaveText('Second tab pending project');
+  expect(stored().projects[1].name).toBe('Atlas Office');
+  await other.getByRole('button', { name: 'Open settings', exact: true }).click();
+  const downloading = other.waitForEvent('download');
+  await other.getByRole('button', { name: 'Export full backup', exact: true }).click();
+  const file = await downloading;
+  const backup = JSON.parse(readFileSync((await file.path())!, 'utf8'));
+  expect(backup.workspace.projects[1].name).toBe('Second tab pending project');
+  expect(stored().projects[0].name).toBe('First tab saved project');
+  await other.close();
 });
 test('voice draft review preserves evidence and does not assume a different quoted unit', async ({
   page,
@@ -139,4 +162,60 @@ test('voice draft review preserves evidence and does not assume a different quot
       return saved.rates.find((r: any) => r.sourceRef === `Voice call ${callId}`)?.notes;
     })
     .toContain(evidence);
+});
+
+test('studio import and backup restore retain the original workbook byte for byte', async ({
+  page,
+}) => {
+  const book = new ExcelJS.Workbook();
+  const sheet = book.addWorksheet('Client');
+  sheet.addRow(['Description', 'Unit', 'Quantity', 'Rate', 'Amount']);
+  sheet.addRow(['Synthetic cable', 'm', 10, null, null]);
+  book.addWorksheet('Private terms').getCell('A1').value = 'Retain this source note';
+  const bytes = Buffer.from(await book.xlsx.writeBuffer());
+  const hash = (data: Buffer) => createHash('sha256').update(data).digest('hex');
+  await signIn(page);
+  await page.goto('/#boq');
+  await page.getByLabel('Choose project').selectOption('p2');
+  await page.getByRole('button', { name: 'Import Excel', exact: true }).click();
+  await page
+    .getByLabel('Choose Excel workbook')
+    .setInputFiles({ name: 'synthetic.xlsx', mimeType: 'application/octet-stream', buffer: bytes });
+  await page.getByRole('combobox', { name: 'Rate column', exact: true }).selectOption('4');
+  await page.getByRole('checkbox', { name: /I have checked/ }).check();
+  await page.getByRole('button', { name: 'Import 1 items', exact: true }).click();
+  const stored = () =>
+    JSON.parse((db.prepare('SELECT data FROM workspaces WHERE user_id=?').get(id) as any).data);
+  await expect.poll(() => stored().projects[1].items[0].description).toBe('Synthetic cable');
+  const workbookId = stored().projects[1].workbookId;
+  expect(
+    hash(
+      Buffer.from(
+        (db.prepare('SELECT bytes FROM files WHERE user_id=? AND id=?').get(id, workbookId) as any)
+          .bytes,
+      ),
+    ),
+  ).toBe(hash(bytes));
+  await page.goto('/#settings');
+  const downloading = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export full backup', exact: true }).click();
+  const file = await downloading;
+  const backup = JSON.parse(readFileSync((await file.path())!, 'utf8'));
+  expect(hash(Buffer.from(backup.workbooks[workbookId], 'base64'))).toBe(hash(bytes));
+  await page.getByRole('button', { name: 'Start an empty workspace', exact: true }).click();
+  await page.getByRole('button', { name: 'Start empty', exact: true }).click();
+  await expect.poll(() => stored().projects.length).toBe(0);
+  await page.getByLabel('Restore a backup', { exact: true }).setInputFiles((await file.path())!);
+  await page.getByRole('button', { name: 'Restore workspace', exact: true }).click();
+  await expect.poll(() => stored()).toEqual(backup.workspace);
+  await page.reload();
+  await expect(page.locator('.data-counts')).toContainText('3 projects');
+  expect(
+    hash(
+      Buffer.from(
+        (db.prepare('SELECT bytes FROM files WHERE user_id=? AND id=?').get(id, workbookId) as any)
+          .bytes,
+      ),
+    ),
+  ).toBe(hash(bytes));
 });

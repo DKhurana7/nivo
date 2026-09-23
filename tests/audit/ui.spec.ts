@@ -45,13 +45,18 @@ for (const mode of ['Local', 'Studio'] as const) {
       const account = credentials.accounts.find((a: any) => a.email === 'alpha@audit.local');
       // Never print credentials or attach them to a trace.
       const login = await request.post('http://127.0.0.1:8787/api/login', {
-        headers,
+        headers: { ...headers, 'X-Forwarded-For': '198.18.1.1' },
         data: account,
       });
       expect(login.status()).toBe(200);
       cookieState = (await request.storageState()).cookies;
     });
     test.beforeEach(async ({ page, context }, info) => {
+      // Each isolated audit scenario represents a different client. Production
+      // throttling remains enabled; rapid automation must not share one IP bucket.
+      await context.setExtraHTTPHeaders({
+        'X-Forwarded-For': `198.18.0.${(info.testId.split('').reduce((n, c) => n + c.charCodeAt(0), 0) % 250) + 1}`,
+      });
       testName = info.title;
       workspace = seedWorkspace();
       if (mode === 'Studio') {
@@ -109,18 +114,42 @@ for (const mode of ['Local', 'Studio'] as const) {
     }
     async function restore(page: Page, w: Workspace) {
       await go(page, 'settings');
-      await page
-        .getByLabel('Restore a backup', { exact: true })
-        .setInputFiles({
-          name: 'synthetic.json',
-          mimeType: 'application/json',
-          buffer: Buffer.from(
-            JSON.stringify({ format: 'nivo-backup-v1', workspace: w, workbooks: {} }),
-          ),
-        });
+      await page.getByLabel('Restore a backup', { exact: true }).setInputFiles({
+        name: 'synthetic.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(
+          JSON.stringify({ format: 'nivo-backup-v1', workspace: w, workbooks: {} }),
+        ),
+      });
       await button(page, 'Restore workspace').click();
       await expect.poll(async () => JSON.stringify(await saved(page))).toBe(JSON.stringify(w));
     }
+
+    test('project and pricing dialogs wrap keyboard focus and cancel without data changes', async ({
+      page,
+    }) => {
+      await go(page, 'boq');
+      const before = (await saved(page)).projects[0];
+      for (const name of ['Project details', 'Pricing settings']) {
+        const trigger = button(page, name);
+        await trigger.click();
+        await trap(page);
+        const dialog = page.getByRole('dialog');
+        const first = dialog.getByRole('button', { name: 'Close dialog' });
+        const last = dialog.getByRole('button', {
+          name: name === 'Project details' ? 'Save project details' : 'Save pricing',
+        });
+        await last.focus();
+        await page.keyboard.press('Tab');
+        await expect(first).toBeFocused();
+        await page.keyboard.press('Shift+Tab');
+        await expect(last).toBeFocused();
+        await close(page);
+        await expect(trigger).toBeFocused();
+      }
+      expect((await saved(page)).projects[0]).toEqual(before);
+      verified('DLG-01 DLG-10 CTL-22 CTL-23');
+    });
 
     test('empty states, undated deadlines and enquiry limits', async ({ page }) => {
       workspace.projects[0].dueDate = '';
@@ -861,13 +890,11 @@ for (const mode of ['Local', 'Studio'] as const) {
       await expect.poll(async () => (await saved(page)).projects.length).toBe(0);
       expect((await saved(page)).settings.company).toBe('Audit saved studio');
       verified('CTL-74 CTL-75');
-      await page
-        .getByLabel('Restore a backup', { exact: true })
-        .setInputFiles({
-          name: 'bad.json',
-          mimeType: 'application/json',
-          buffer: Buffer.from('{}'),
-        });
+      await page.getByLabel('Restore a backup', { exact: true }).setInputFiles({
+        name: 'bad.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from('{}'),
+      });
       await expect(page.locator('.toast')).toContainText(/backup|workspace|format/i);
       expect((await saved(page)).projects).toHaveLength(0);
       await page
@@ -959,13 +986,11 @@ for (const mode of ['Local', 'Studio'] as const) {
       }
       for (const fixture of limits) {
         await button(page, 'Import Excel').click();
-        await page
-          .getByLabel('Choose Excel workbook')
-          .setInputFiles({
-            name: fixture.name,
-            mimeType: 'application/octet-stream',
-            buffer: fixture.buffer,
-          });
+        await page.getByLabel('Choose Excel workbook').setInputFiles({
+          name: fixture.name,
+          mimeType: 'application/octet-stream',
+          buffer: fixture.buffer,
+        });
         await expect(page.getByRole('alert')).toContainText(fixture.message);
         await expect(
           page.getByRole('dialog').getByRole('button', { name: /^Import/ }),
@@ -978,13 +1003,11 @@ for (const mode of ['Local', 'Studio'] as const) {
       sheet.addRow(['Description', 'Unit', 'Quantity']);
       for (let i = 0; i < 35; i++) sheet.addRow([`Warning item ${i}`, 'm', null]);
       await button(page, 'Import Excel').click();
-      await page
-        .getByLabel('Choose Excel workbook')
-        .setInputFiles({
-          name: 'warnings.xlsx',
-          mimeType: 'application/octet-stream',
-          buffer: Buffer.from(await warnings.xlsx.writeBuffer()),
-        });
+      await page.getByLabel('Choose Excel workbook').setInputFiles({
+        name: 'warnings.xlsx',
+        mimeType: 'application/octet-stream',
+        buffer: Buffer.from(await warnings.xlsx.writeBuffer()),
+      });
       await page.getByRole('dialog').locator('summary').click();
       await expect(page.getByRole('dialog').locator('details p')).toHaveCount(30);
       await close(page);

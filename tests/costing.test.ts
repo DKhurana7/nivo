@@ -27,9 +27,11 @@ describe('pricing invariants', () => {
   });
   it('applying a quotation always requires renewed review', () => {
     const w = seedWorkspace();
+    w.projects[0].items[0].assembly = { material: 100, labour: 10, other: 0, adjustment: 0 };
     const updated = applyRate(w.projects[0].items[0], w.rates[0]);
     expect(updated.reviewed).toBe(false);
     expect(updated.rateId).toBe('r1');
+    expect(updated.assembly).toBeUndefined();
   });
   it('normalizes unit aliases without confusing sheet and area pricing', () => {
     expect(normalUnit('sq. ft.')).toBe('sqft');

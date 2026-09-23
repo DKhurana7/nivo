@@ -23,6 +23,10 @@ test('removing a mapped item warns that original export is disabled for the proj
   await page.getByRole('button', { name: 'Delete LED downlight, 12 W', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('original workbook');
   await expect(page.getByRole('dialog')).toContainText('entire project');
+  await page.screenshot({ path: 'test-results/delete-warning-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: 'test-results/delete-warning-phone.png', fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1100 });
   await page.getByRole('button', { name: 'Keep item', exact: true }).click();
   await page.getByRole('button', { name: 'Export BOQ', exact: true }).click();
   await expect(page.getByRole('button', { name: /Fill the original workbook/ })).toBeEnabled();

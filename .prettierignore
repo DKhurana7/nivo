@@ -9,3 +9,5 @@ agent/.venv
 models
 data
 deploy/generated
+
+.superpowers

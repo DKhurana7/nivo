@@ -2,21 +2,72 @@
 
 Updated 23 September 2026. Read CODEBASE_REFERENCE.md and the newest checkpoint below first. Sections after the checkpoint are historical; their old process IDs and incomplete-work statements are superseded.
 
-## Latest checkpoint: browser audit continuation, 23 September 2026
+## Latest checkpoint: Phase 0 complete, 23 September 2026
 
-Tasks 7 and 8 have now been exercised using `tests/audit/ui.spec.ts` against fresh browser contexts and the existing **isolated `data/audit.sqlite` API**. The earlier checkpoint below is historical. No product fix has been applied yet.
+**Resume here. Phase 0's 12 tasks are complete; the older checkpoint below is historical. The app is ready for supervised local single-operator use, not yet publicly deployed or validated for production telephony.** All 218 frozen inventory rows have recorded results. Six findings were fixed and two structural findings explicitly deferred to Phase 1. The former red regression tests now pass because their product defects were fixed; do not restore the historical broken behavior.
 
-- 24 main browser scenarios passed (12 in each mode); two additional import-limit/warning scenarios passed; the explicit demo/login scenario passed. Actual Excel artifacts and persisted workspace values were asserted.
-- Real two-tab stale-revision refusal passed. The losing tab retained its pending changes and its downloaded backup contained them. Logout invalidated API access.
-- `docs/audit/INVENTORY.md` now has 198 of 218 rows recorded. Only result cells changed; the frozen behaviour descriptions and 218 IDs are intact. Voice rows and studio voice controls are the remaining 20 rows.
-- New **F-05 Minor OPEN**: native dialog focus escapes instead of wrapping. `tests/e2e/modal.spec.ts` fails before product changes. **F-06 Major DEFERRED PHASE 1** records the workspace-wide revision restriction.
-- F-04 now has a real failing regression in `tests/e2e/workbook-delete.spec.ts`. Four known failing checks now preserve F-01/F-02/F-04/F-05; fix product causes in Task 10.
-- Task 9 is in progress. The real speech smoke, adapted to `data/audit-voice-login.json`, passed: **4 transcript turns, 54.4 seconds received audio, ₹125/m excluding GST, `needsReview: true`**, exit 0. Browser control tests are running next. Outbound remains false.
-- Audit helpers: `npx playwright test --config playwright.audit.config.ts ui.spec.ts access.spec.ts`; `node --import tsx scripts/audit-voice.mjs`; `NIVO_SMOKE_LOGIN_FILE=data/audit-voice-login.json agent/.venv/bin/python -m agent.smoke_session`; then `NIVO_AUDIT_VOICE=1 npx playwright test --config playwright.audit.config.ts voice.spec.ts`. Voice fixture preparation must run AFTER UI tests, which reset the fictional account.
-- Private traces, screenshots and evidence JSON are under ignored `data/audit-*`; they can contain synthetic account session tokens and must not be shared as public artifacts. Desktop settings and 390px BOQ screenshots were inspected.
-- No deployment, spending, real calls or writes to `data/nivo.sqlite`. Deployment host/domain and initial single-firm versus multi-firm scope were asked asynchronously; answers are pending.
+### Delivered fixes and evidence
 
-## Latest checkpoint: Phase 0 audit halted after Task 6, 23 September 2026
+| Finding | Disposition                | Change                                                                                                                                                         |
+| ------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-01    | Minor, FIXED (`36f9490`)   | Blank rate validity is treated as unspecified rather than permanently expired.                                                                                 |
+| F-02    | Blocker, FIXED (`0167ac5`) | Routes register after Fastify plugins boot; login and global rate limits actually enforce 429 responses. Limits remain per-IP, not per-account or distributed. |
+| F-03    | Major, DEFERRED TO PHASE 1 | Worker callbacks still share process-wide HMAC authority; call/firm-scoped credentials and ownership checks are required before multi-firm release.            |
+| F-04    | Minor, FIXED (`21b1d99`)   | Item deletion warns that it disables the original-workbook export for the entire project; clean exports remain available.                                      |
+| F-05    | Minor, FIXED (`d375f24`)   | Modal Tab/Shift+Tab explicitly wraps among visible enabled controls, preserving Escape and focus restoration.                                                  |
+| F-06    | Major, DEFERRED TO PHASE 1 | Whole-workspace revisions make edits to different projects conflict. Pending edits remain recoverable; row-level persistence belongs in Phase 1.               |
+| F-07    | Minor, FIXED (`516e4eb`)   | Fonts are emitted as files so the production CSP accepts them without allowing data URLs.                                                                      |
+| F-08    | Minor, FIXED (`4525451`)   | Overview directs users to live enquiry readiness instead of falsely claiming voice is disconnected.                                                            |
+
+Each fixed defect had a failing regression before the product fix. Task 11 extended the existing studio suite with real two-tab edits to different projects, pending-backup recovery, and exact original-workbook hashes across backup/reset/restore; it did not add the plan's placeholder test. A built-asset browser test now exercises production cookies/CSP, login, export and reload. `docs/PRODUCTION_RELEASE.md` records the release checklist; `docs/superpowers/specs/2026-09-23-phase1-input.md` records the next implementation inputs, not an approved Phase 1 plan.
+
+### Final validation
+
+- `npm test`: **23 passed**; `npm run test:server`: **22 passed**; `npm run test:e2e`: **16 passed** in the final full run.
+- Python `agent/.venv/bin/python -m pytest agent/tests -q`: **6 passed**.
+- `npm run check:server`, `npm run build`, `npm run format:check`: passed. Build retains the known large lazy-chunk warning.
+- Full and production-only npm audits: **0 vulnerabilities** at verification time.
+- Linux Compose configuration parses. **Container images were not built** because the Docker daemon is stopped; external HTTPS/TURN/PSTN were not tested.
+- Browser audit: **27 scenarios passed together**, followed by **two added modal-wrap scenarios passing**. Local and studio modes were exercised independently. Produced Excel files, persisted state and screenshots were inspected.
+- `node scripts/verify-audit.mjs`: **218 frozen inventory rows have recorded results; no undisposed findings.** This compares non-result cells with commit `f9460ae`; preserve that frozen contract. Finding disposition must remain on its severity line.
+
+### Live voice: verified behavior and remaining limitation
+
+The real English speech smoke against a fictional audit enquiry exited 0 with **four transcript turns, 54.4 seconds of received audio and a validated ₹125/m excluding-GST draft marked `needsReview: true`**. Real browser checks covered disclosure/audio, mute/unmute with LiveKit participant flags, rejection of a second active call, end/persistence/room cleanup, cancellation during setup and draft review without automatically pricing the BOQ. The overview regression passed against a healthy worker. Worker-unavailable refusal also passed with the worker deliberately suspended while LiveKit remained up, then resumed.
+
+**A subsequent real-model re-extraction returned 422 because its evidence excerpt was not an exact vendor-transcript substring.** The guard correctly rejected it, the UI showed the error, and the prior validated draft stayed intact. This proves safe refusal, not repeatable model quality. Keep exact-evidence validation and human review. Hindi/Hinglish, telephone calls, public media connectivity and production load remain unvalidated. `ENABLE_OUTBOUND_CALLS=false`; no vendor was contacted and no paid infrastructure or carrier was provisioned.
+
+### Current running application: real studio restored
+
+**The API now uses `data/nivo.sqlite`, NOT `data/audit.sqlite`. Do not run fixture/reset audit tools against the running API.** Audit work used the isolated database; after completion the real studio was backed up and restored to service. `node scripts/verify-local-studio.mjs` passed against the real studio, including login/reload, 112 unpriced items, byte-identical retained workbook, phone overflow checks and healthy voice readiness. Verification creates normal authentication/session records but did not change client workspace or workbook data.
+
+Local URL: **http://127.0.0.1:5178**. Owner: `owner@nivo.local`; password remains in ignored `data/local-studio-login.json`. Never print or commit credentials.
+
+| Service       | Last verified PID | Address / state                             |
+| ------------- | ----------------- | ------------------------------------------- |
+| API           | 52134             | 127.0.0.1:8787, **real `data/nivo.sqlite`** |
+| Vite          | 34555             | 127.0.0.1:5178                              |
+| Python worker | 49203             | Health 8081; DPDFNet enabled                |
+| LiveKit       | 49290             | 127.0.0.1:7880                              |
+| Ollama        | 49293             | 127.0.0.1:11434                             |
+
+PIDs are a checkpoint, not a guarantee; inspect before stopping anything. Use non-login shells for Node 22.14 on this Mac; fresh installs require the declared Node 22.22+.
+
+Raisina remains **112 items: 86 measured, 25 rate-only, one unknown quantity, zero confirmed prices**. Source row 188 (managed switch) needs quantity resolution. Four nonzero source rates are evidence only. Confirm project metadata and the reviewable 20% markup / 18% GST defaults before issue. The Downloads source is unchanged and matches retained workbook bytes.
+
+Before the real API restart, a consistent backup was written to `data/backups/phase0-release/nivo-2026-09-23T08-52-00-397Z.sqlite`, private mode 0600. Its integrity check passed and all seven application tables matched the source. Two old callback-spool events referenced calls absent from both databases; they were preserved in ignored `data/archived-unmatched-spool-20260923/`. Do not replay this archive into the real studio. Active audit calls and the live retry spool were empty before the switch.
+
+### Safe next-session sequence
+
+1. Read this checkpoint, the reference, `docs/PRODUCTION_RELEASE.md`, and the Phase 1 input document. Branch remains `phase0-audit`; nothing has been merged, pushed or deployed publicly. Inspect `git status` and `git log` for the final handover commit.
+2. Preserve the real studio and its backup. Before another audit run, stop only the verified API process and explicitly restart with `DATABASE_PATH=data/audit.sqlite npm run server`. Verify the database selection before running any fictional-account fixture or reset.
+3. UI audit: `npx playwright test --config playwright.audit.config.ts ui.spec.ts access.spec.ts`. Voice fixtures must be prepared **after** UI tests, which reset the fictional account: `node --import tsx scripts/audit-voice.mjs`; `NIVO_SMOKE_LOGIN_FILE=data/audit-voice-login.json agent/.venv/bin/python -m agent.smoke_session`; then `NIVO_AUDIT_VOICE=1 npx playwright test --config playwright.audit.config.ts voice.spec.ts`. Worker-down testing deliberately changes service availability; restore it afterward.
+4. Host/domain and initial single-firm versus multi-firm/shared-staff release scope were requested asynchronously but remain unanswered. Use these decisions to prepare a concrete Phase 1/deployment plan. Do not claim Phase 1, public production readiness or carrier onboarding is complete.
+5. Keep private evidence under ignored `data/`. Screenshots/traces and fixture files can contain client information or sessions. The final real-studio screenshots are `data/verification/raisina-desktop.png` and `raisina-phone.png`; synthetic audit evidence is under `data/audit-*`.
+
+## Historical checkpoint: Phase 0 audit halted after Task 6, 23 September 2026
+
+> Superseded by the completed checkpoint above. The following preserves the earlier evidence and instructions as history; its open findings, red tests, service PIDs and unstarted tasks are no longer current.
 
 **You are picking up a partially completed audit. Read this entire checkpoint before running anything.**
 
@@ -24,15 +75,15 @@ The product was being taken from a single-firm internal tool towards a multi-fir
 
 ### What is on disk
 
-| Artifact | Path | State |
-| --- | --- | --- |
-| Phase 0 design | `docs/superpowers/specs/2026-09-23-phase0-audit-design.md` | Approved by the user |
-| Phase 0 plan, 12 tasks | `docs/superpowers/plans/2026-09-23-phase0-audit.md` | Approved; Tasks 7-12 not started |
-| Behaviour inventory, 218 rows | `docs/audit/INVENTORY.md` | **FROZEN.** See the contract below |
-| Findings | `docs/audit/FINDINGS.md` | 4 findings, append-only |
-| Baseline environment record | `docs/audit/ENVIRONMENT.md` | Versions, PIDs, true baseline suite results |
-| Telephony and regulatory research | `docs/TELEPHONY_RESEARCH.md` | Phase 2 input, not legally reviewed |
-| Execution ledger, incl. every ruling | `.superpowers/sdd/2026-09-23-phase0-audit/progress.md` | Git-ignored scratch, but the record of decisions |
+| Artifact                             | Path                                                       | State                                            |
+| ------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------ |
+| Phase 0 design                       | `docs/superpowers/specs/2026-09-23-phase0-audit-design.md` | Approved by the user                             |
+| Phase 0 plan, 12 tasks               | `docs/superpowers/plans/2026-09-23-phase0-audit.md`        | Approved; Tasks 7-12 not started                 |
+| Behaviour inventory, 218 rows        | `docs/audit/INVENTORY.md`                                  | **FROZEN.** See the contract below               |
+| Findings                             | `docs/audit/FINDINGS.md`                                   | 4 findings, append-only                          |
+| Baseline environment record          | `docs/audit/ENVIRONMENT.md`                                | Versions, PIDs, true baseline suite results      |
+| Telephony and regulatory research    | `docs/TELEPHONY_RESEARCH.md`                               | Phase 2 input, not legally reviewed              |
+| Execution ledger, incl. every ruling | `.superpowers/sdd/2026-09-23-phase0-audit/progress.md`     | Git-ignored scratch, but the record of decisions |
 
 Branch: `phase0-audit`, 13 commits ahead of the baseline commit `0478548`. `main` holds only the baseline import. Nothing has been merged or pushed.
 
@@ -40,12 +91,12 @@ Before this session, the entire 10,700-line source tree was untracked with zero 
 
 ### The four findings
 
-| Id | Severity | Summary |
-| --- | --- | --- |
-| F-01 | Minor, OPEN | `isStale` treats a blank `validUntil` as permanently expired, so such a rate can never be applied. Confirmed NOT user-reachable: all seven `Rate`-creation paths are gated by the required date input or `validateWorkspace`'s regex check. Defence-in-depth only. |
-| **F-02** | **Blocker, OPEN** | **Rate limiting is completely inert.** Unlimited login brute force, no request throttling anywhere. |
-| F-03 | Major, DEFERRED TO PHASE 1 | The HMAC-signed agent callback endpoints query `calls` by id with no tenant predicate, gated only by one process-wide `AGENT_CALLBACK_SECRET`. Correct while one tenant exists; a cross-tenant read and write path the moment a second firm does. |
-| F-04 | Minor, OPEN | Deleting one BOQ item silently clears `project.workbookId` for the whole project, permanently disabling the original-workbook export, with no warning — while the sibling edit path both guards the condition and warns. |
+| Id       | Severity                   | Summary                                                                                                                                                                                                                                                            |
+| -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| F-01     | Minor, OPEN                | `isStale` treats a blank `validUntil` as permanently expired, so such a rate can never be applied. Confirmed NOT user-reachable: all seven `Rate`-creation paths are gated by the required date input or `validateWorkspace`'s regex check. Defence-in-depth only. |
+| **F-02** | **Blocker, OPEN**          | **Rate limiting is completely inert.** Unlimited login brute force, no request throttling anywhere.                                                                                                                                                                |
+| F-03     | Major, DEFERRED TO PHASE 1 | The HMAC-signed agent callback endpoints query `calls` by id with no tenant predicate, gated only by one process-wide `AGENT_CALLBACK_SECRET`. Correct while one tenant exists; a cross-tenant read and write path the moment a second firm does.                  |
+| F-04     | Minor, OPEN                | Deleting one BOQ item silently clears `project.workbookId` for the whole project, permanently disabling the original-workbook export, with no warning — while the sibling edit path both guards the condition and warns.                                           |
 
 **F-02 is the one to act on first.** `@fastify/rate-limit` is registered at `server/app.ts:79` without `await`. The plugin adds exactly one hook, an `onRoute` handler, and both the global and per-route enforcement branches live inside it. `onRoute` fires only for routes registered after the hook exists, and Fastify defers plugin loading until `ready()` — so every route in `makeApp` is declared before the hook exists and none is ever throttled. The login route's `max: 10 / 15 minutes` config at `:129` is dead. Verified by 14 failed logins and 320 requests producing no 429 and no `x-ratelimit-*` header on any response.
 
@@ -86,13 +137,13 @@ Not verified — no result recorded for any of these rows:
 
 Restarted from current source during Task 1 and still up. Recheck PIDs before stopping anything, and do not stop unrelated processes.
 
-| Service | PID | Address |
-| --- | --- | --- |
-| API, on `data/audit.sqlite` | 34523 | 127.0.0.1:8787 |
-| Vite | 34555 | 127.0.0.1:5178 |
-| Python worker | 34561 | health 8081 |
-| LiveKit | 25676 | 127.0.0.1:7880 |
-| Ollama | 25677 | 127.0.0.1:11434 |
+| Service                     | PID   | Address         |
+| --------------------------- | ----- | --------------- |
+| API, on `data/audit.sqlite` | 34523 | 127.0.0.1:8787  |
+| Vite                        | 34555 | 127.0.0.1:5178  |
+| Python worker               | 34561 | health 8081     |
+| LiveKit                     | 25676 | 127.0.0.1:7880  |
+| Ollama                      | 25677 | 127.0.0.1:11434 |
 
 LiveKit and Ollama hold no application source and were left running from the previous session.
 
@@ -115,7 +166,6 @@ Task 10's discipline is the one that matters: prove each regression test fails a
 Separately: Deepgram's Aura TTS has no Hindi and no Indian-accented English voice, so the planned Deepgram credits cover STT only. Sarvam Bulbul is the working Indian-voice option and would need its own key; do not reuse the sibling project's.
 
 ## Historical session record
-
 
 ## Goal
 

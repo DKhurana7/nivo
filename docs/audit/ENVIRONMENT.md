@@ -6,7 +6,7 @@ login-shell default of Node 18.
 
 Step order follows Controller Ruling P-01: `create-user.ts` was read and
 `scripts/audit-env.mjs` was written and run to provision the isolated audit
-database *before* the app services were restarted, and the API was restarted
+database _before_ the app services were restarted, and the API was restarted
 pointed at `data/audit.sqlite` rather than the default `data/nivo.sqlite`. This
 guarantees the audit API never opens the real studio database.
 
@@ -23,13 +23,13 @@ Version 5.9.3
 
 Ports at session start (processes left running by a previous session):
 
-| Port  | Process      | PID   |
-|-------|--------------|-------|
-| 8787  | node         | 27573 |
-| 5178  | node         | 26009 |
-| 7880  | livekit-s    | 25676 |
-| 11434 | ollama       | 25677 |
-| 8081  | python3.1    | 27275 |
+| Port  | Process   | PID   |
+| ----- | --------- | ----- |
+| 8787  | node      | 27573 |
+| 5178  | node      | 26009 |
+| 7880  | livekit-s | 25676 |
+| 11434 | ollama    | 25677 |
+| 8081  | python3.1 | 27275 |
 
 ```
 $ git log --oneline -1
@@ -102,7 +102,7 @@ point.
 **However**, when checked again later (during Step 3's suite run, at which point
 no stat had been taken in between), its mtime had changed, to
 `Sep 23 02:17:16 2026`. No `stat` was captured immediately before and after the
-Step 2 `kill` of the *inherited, previous-session* API process (pid 27573, which
+Step 2 `kill` of the _inherited, previous-session_ API process (pid 27573, which
 predates this task and was never under this task's control) — that is a real gap
 in the evidence, not something this document should paper over. What follows is
 this task's best explanation for the change, and it is **strongly supported by
@@ -188,11 +188,11 @@ DPDFNET_ENABLED=true agent/.venv/bin/python -m agent.worker dev   &   # worker, 
 
 New PIDs and confirmed the API process actually carries the env var:
 
-| Port | Process   | New PID | Notes |
-|------|-----------|---------|-------|
+| Port | Process   | New PID | Notes                                                                         |
+| ---- | --------- | ------- | ----------------------------------------------------------------------------- |
 | 8787 | node      | 34523   | `DATABASE_PATH=data/audit.sqlite` confirmed present in process env (`ps eww`) |
-| 5178 | node      | 34555   | default Vite dev server |
-| 8081 | python3.1 | 34561   | `agent.worker dev`, `DPDFNET_ENABLED=true` |
+| 5178 | node      | 34555   | default Vite dev server                                                       |
+| 8081 | python3.1 | 34561   | `agent.worker dev`, `DPDFNET_ENABLED=true`                                    |
 
 Health checks, all green:
 
@@ -213,15 +213,15 @@ telephone calls were placed at any point in this task).
 Run with the audit API/Vite/worker up (against `data/audit.sqlite`), LiveKit and
 Ollama left running from the previous session.
 
-| # | Suite | Command | Result | Detail |
-|---|-------|---------|--------|--------|
-| 1 | Build | `npm run build` | **PASS** | `tsc -b && vite build` — exit 0, 499 modules transformed, built in 2.49s. (Bundle-size warning only, not a failure: several chunks >500kB, e.g. `exceljs.min` 940kB.) |
-| 2 | Server typecheck | `npm run check:server` | **PASS** | `tsc --noEmit -p server/tsconfig.json` — exit 0, no output. |
-| 3 | Frontend unit tests | `npm test` | **PASS** | vitest — 3 test files passed (3), 14 tests passed (14). |
-| 4 | Server tests | `npm run test:server` | **PASS** | Node test runner — 4/4 tests passed, 0 failed. (Two subtests log an expected `API request failed POST /api/calls Error` line as part of negative-path testing, not a suite failure.) |
-| 5 | E2E tests | `npm run test:e2e` | **PASS** | Playwright — 12/12 passed in 23.1s. `playwright.config.ts` uses `webServer: { command: 'npm run dev', url: 'http://127.0.0.1:5178', reuseExistingServer: true }`, so it reused the already-running Vite dev server, which proxies API calls to the audit-pointed API on 8787 — meaning e2e's own writes (e.g. the workbook-import test) also landed in `data/audit.sqlite`, never `data/nivo.sqlite`. |
-| 6 | Format check | `npm run format:check` | **FAIL** | `prettier --check .` — exit 1. 16 files flagged, all planning/doc content: 13 files under `.superpowers/sdd/2026-09-23-phase0-audit/`, `docs/superpowers/plans/2026-09-23-phase0-audit.md`, `docs/superpowers/specs/2026-09-23-phase0-audit-design.md`, `docs/TELEPHONY_RESEARCH.md`. **None are product source or under `scripts/`/`server/`/`src/`.** Recorded as a true baseline finding, not fixed. |
-| 7 | Agent pytest | `agent/.venv/bin/python -m pytest agent/tests -q` | **PASS** | 6 passed in 1.21s. |
+| #   | Suite               | Command                                           | Result   | Detail                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --- | ------------------- | ------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Build               | `npm run build`                                   | **PASS** | `tsc -b && vite build` — exit 0, 499 modules transformed, built in 2.49s. (Bundle-size warning only, not a failure: several chunks >500kB, e.g. `exceljs.min` 940kB.)                                                                                                                                                                                                                                   |
+| 2   | Server typecheck    | `npm run check:server`                            | **PASS** | `tsc --noEmit -p server/tsconfig.json` — exit 0, no output.                                                                                                                                                                                                                                                                                                                                             |
+| 3   | Frontend unit tests | `npm test`                                        | **PASS** | vitest — 3 test files passed (3), 14 tests passed (14).                                                                                                                                                                                                                                                                                                                                                 |
+| 4   | Server tests        | `npm run test:server`                             | **PASS** | Node test runner — 4/4 tests passed, 0 failed. (Two subtests log an expected `API request failed POST /api/calls Error` line as part of negative-path testing, not a suite failure.)                                                                                                                                                                                                                    |
+| 5   | E2E tests           | `npm run test:e2e`                                | **PASS** | Playwright — 12/12 passed in 23.1s. `playwright.config.ts` uses `webServer: { command: 'npm run dev', url: 'http://127.0.0.1:5178', reuseExistingServer: true }`, so it reused the already-running Vite dev server, which proxies API calls to the audit-pointed API on 8787 — meaning e2e's own writes (e.g. the workbook-import test) also landed in `data/audit.sqlite`, never `data/nivo.sqlite`.   |
+| 6   | Format check        | `npm run format:check`                            | **FAIL** | `prettier --check .` — exit 1. 16 files flagged, all planning/doc content: 13 files under `.superpowers/sdd/2026-09-23-phase0-audit/`, `docs/superpowers/plans/2026-09-23-phase0-audit.md`, `docs/superpowers/specs/2026-09-23-phase0-audit-design.md`, `docs/TELEPHONY_RESEARCH.md`. **None are product source or under `scripts/`/`server/`/`src/`.** Recorded as a true baseline finding, not fixed. |
+| 7   | Agent pytest        | `agent/.venv/bin/python -m pytest agent/tests -q` | **PASS** | 6 passed in 1.21s.                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ### Summary
 
@@ -237,3 +237,9 @@ created with mode `0600` and was never printed, `cat`'d, or pasted into this
 document or any commit. Only non-secret metadata (emails, file sizes, mtimes)
 appears above. `ENABLE_OUTBOUND_CALLS` was not touched and no telephone call was
 placed at any point.
+
+## Completed-audit runtime checkpoint, 23 September 2026
+
+The historical baseline above has been superseded. Domain/backend/browser/Python suites now pass with 23/22/16/6 tests respectively; build, backend typecheck, formatting, vulnerability audits and the 218-row disposition gate pass. Live English browser voice passed; a later unverifiable extraction was safely rejected. See HANDOVER.md for exact evidence and limitations.
+
+After audit completion and a verified consistent backup, the API was restarted on **real `data/nivo.sqlite`**, last PID 52134. Vite 34555, worker 49203, LiveKit 49290 and Ollama 49293 were healthy at the checkpoint. Recheck before stopping processes. **Switch the API explicitly to `data/audit.sqlite` before any audit fixtures or resets.** The real-studio browser verification passed without modifying client workspace/workbook content; normal authentication records were created. No public deployment or telephone call occurred.
