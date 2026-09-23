@@ -274,23 +274,23 @@ trigger; none is marked `UNREACHABLE`.
 
 | Id | Behaviour | Correct behaviour | Result |
 | --- | --- | --- | --- |
-| EXP-01 | Client quotation export | Opens in Excel; contains selling rates; contains NO purchase cost and no original private sheet | |
-| EXP-02 | Internal costing export | Opens in Excel; contains costs and selling prices | |
-| EXP-03 | Original workbook export | Opens in Excel; unrelated sheets and formulas intact; recalculation requested | |
-| EXP-04 | Original export after structural edit | Refused, per the documented rule that structural edits disable mapping | |
-| EXP-05 | Original export with a formula in a mapped rate cell | Refused, naming the exact cell address | |
-| EXP-06 | Unpriced line in original export | Retains its original source cell rather than being blanked | |
-| BAK-01 | JSON backup, local mode | Downloads; contains the workspace and base64 workbook | |
-| BAK-02 | JSON restore, local mode | Restores to an identical workspace | |
-| BAK-03 | JSON backup and restore, studio mode | Round-trips through the API | |
-| BAK-04 | Studio reset | Clears the workspace; documented to leave calls and audit intact | |
-| WBK-01 | Import a valid XLSX | Mapping, preview, warnings, then items created | |
-| WBK-02 | Import over the 10 MB limit | Rejected with a clear message | |
-| WBK-03 | Import over 10,000 rows or 100 columns | Rejected with a clear message | |
-| WBK-04 | Merged quantity continuation rows | Attach to the anchor item, no duplicate line | |
-| WBK-05 | Zero source rate on import | Treated as a placeholder, not as a real zero cost | |
-| WBK-06 | Manually entered zero cost | Remains an intentional zero, distinct from unpriced | |
-| WBK-07 | Round trip | Imported bytes retrieved from storage hash-match the original file | |
+| EXP-01 | Client quotation export | Opens in Excel; contains selling rates; contains NO purchase cost and no original private sheet | PASS — single "BOQ" sheet only; no other sheet in workbook (`wb.worksheets.length===1`); full unzipped XML tree searched for cost figures (125, 500) and none found outside unrelated style/theme numeric IDs; column 7 header is "Reference" but every cell is empty string, not `i.cost`. No cost or margin leakage of any kind. |
+| EXP-02 | Internal costing export | Opens in Excel; contains costs and selling prices | PASS — "Unit cost" and "Selling rate" columns both present and correctly populated (0/0, 125/150, 500/600). |
+| EXP-03 | Original workbook export | Opens in Excel; unrelated sheets and formulas intact; recalculation requested | PASS — single original "BOQ" sheet preserved with original row/column structure; unpriced formula cell (row 5) left untouched; `<calcPr calcId="0" fullCalcOnLoad="1" forceFullCalc="1"/>` present in workbook.xml. |
+| EXP-04 | Original export after structural edit | Refused, per the documented rule that structural edits disable mapping | PASS — deleting an item clears `project.workbookId` project-wide; "Fill the original workbook (internal)" button becomes disabled, refusing the export at the UI level. |
+| EXP-05 | Original export with a formula in a mapped rate cell | Refused, naming the exact cell address | PASS — priced the fixture's formula rate line and attempted original export; refused with "Rate cell E5 contains a formula. Use the clean export or review the source formula in Excel; no original export was produced." No file downloaded. |
+| EXP-06 | Unpriced line in original export | Retains its original source cell rather than being blanked | PASS — unpriced "Merged anchor" item's source rate cell (0) was left unmodified in the original export rather than being blanked. |
+| BAK-01 | JSON backup, local mode | Downloads; contains the workspace and base64 workbook | PASS — downloaded JSON has `format:"nivo-backup-v1"`, full workspace, and `workbooks` map keyed by workbookId; base64-decoded bytes SHA-256 match the original fixture exactly (`3bbf97a4...`). |
+| BAK-02 | JSON restore, local mode | Restores to an identical workspace | PASS — SHA-256 of `localStorage['nivo.workspace.v1']` and of every IndexedDB workbook entry identical before reset and after restore. |
+| BAK-03 | JSON backup and restore, studio mode | Round-trips through the API | PASS — exercised the shipped `readBackup`/`restoreWorkbooks` functions against the live studio API; workspace JSON deep-equal before/after restore; workbook bytes retrieved via `/api/files/:id` byte-identical to the original fixture. |
+| BAK-04 | Studio reset | Clears the workspace; documented to leave calls and audit intact | PASS — reset PUT emptied `projects`/`vendors`/`rates`/`enquiries` while keeping `settings`; `calls` table and `audit` table (5 rows, incl. this session's login/workspace.saved events) both remained queryable and untouched by the reset. |
+| WBK-01 | Import a valid XLSX | Mapping, preview, warnings, then items created | PASS — mapped columns in the dialog; preview table and warnings matched `parseSheet` exactly (zero-rate, blank-quantity, merged-row and context warnings all present); 5 items created after import. |
+| WBK-02 | Import over the 10 MB limit | Rejected with a clear message | PASS — 11 MB file rejected client-side before parsing with "This pilot supports workbooks up to 10 MB. Remove unused sheets or images and try again."; Import disabled. |
+| WBK-03 | Import over 10,000 rows or 100 columns | Rejected with a clear message | PASS — 10,051-row fixture rejected with "Use a workbook with at most 10,000 rows and 100 columns per sheet."; Import disabled. |
+| WBK-04 | Merged quantity continuation rows | Attach to the anchor item, no duplicate line | PASS — merged anchor (source row 8) plus its continuation row (9) produced exactly one item ("Merged anchor"), not two; continuation text folded into context/warnings. |
+| WBK-05 | Zero source rate on import | Treated as a placeholder, not as a real zero cost | PASS — "Modular switch 6A" (source rate 0) showed as "Unpriced" in the import preview and item list, not a priced ₹0 line, with warning "zero source rate treated as an unpriced placeholder." |
+| WBK-06 | Manually entered zero cost | Remains an intentional zero, distinct from unpriced | PASS — manually setting the same item's unit cost to 0 in the edit form produced a genuinely priced ₹0.00 line (selling rate ₹0.00, counted in "reviewed"/pricing-completeness, removed from the Unpriced filter count), distinct from the unpriced state. |
+| WBK-07 | Round trip | Imported bytes retrieved from storage hash-match the original file | PASS — SHA-256 `3bbf97a4503b41cf518447c9d6ffeae35319fcef82a4683e78e7b4ea9aef7237` for the original fixture matched byte-for-byte against bytes retrieved from IndexedDB (local mode) and from the authenticated `/api/files/:id` endpoint (studio mode). |
 
 ## Voice (browser WebRTC only; no telephone call)
 
