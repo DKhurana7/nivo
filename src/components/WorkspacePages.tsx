@@ -181,7 +181,7 @@ export function Overview({
             <button className="text-button" onClick={onEnquiries}>
               Open enquiry desk <Icon name="arrow" size={16} />
             </button>
-            <div className="voice-availability">Voice calling is not connected</div>
+            <div className="voice-availability">Check voice readiness in the enquiry desk</div>
           </section>
           {urgent && (
             <section className="deadline-note">
