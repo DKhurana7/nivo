@@ -1,6 +1,8 @@
 # Nivo: complete codebase reference
 
-Updated 23 September 2026 after the continuation and live voice validation. **Read the newest checkpoint at the top of HANDOVER.md for test results, running processes and remaining work.** This file explains the product and codebase; the handover records the active session. Never infer production readiness from implemented source code.
+Updated 23 September 2026 after the continuation, live voice validation, and the partially completed Phase 0 audit. **Read the newest checkpoint at the top of HANDOVER.md for test results, running processes, open findings and remaining work.** This file explains the product and codebase; the handover records the active session. Never infer production readiness from implemented source code.
+
+**Audit status.** A Phase 0 audit is in progress and stopped after 6 of 12 tasks. 59 of 218 inventoried behaviours have a recorded result; the other 159 — every screen, filter, dialog, control and the whole voice desk — are unverified. Four findings are recorded, one of them an open Blocker (F-02, rate limiting inert). Nothing has been fixed yet. Two test suites are deliberately red as recorded evidence and must not be "repaired". Statements in this file about verified behaviour apply only to rows with a recorded result in `docs/audit/INVENTORY.md`.
 
 ## Product and scope
 
@@ -62,6 +64,14 @@ Detailed model/download/deployment/SIP/backup commands and researched free-hosti
 | Path                                                                     | Purpose                                                                                                         |
 | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
 | `AGENTS.md`                                                              | Maintenance instructions, reference/verification requirements                                                   |
+| `docs/audit/INVENTORY.md`                                                | **Frozen** 218-row checklist of every verifiable behaviour, with a result column per operating mode             |
+| `docs/audit/FINDINGS.md`                                                 | Recorded defects; disposition goes ON the severity line, which an exit gate greps                                |
+| `docs/audit/ENVIRONMENT.md`                                              | Audit baseline: versions, service PIDs, true suite results at audit start                                        |
+| `docs/superpowers/specs/2026-09-23-phase0-audit-design.md`               | Phase 0 design: what the audit establishes and how                                                               |
+| `docs/superpowers/plans/2026-09-23-phase0-audit.md`                      | Phase 0 implementation plan, 12 tasks; 7-12 unstarted                                                            |
+| `docs/TELEPHONY_RESEARCH.md`                                             | Indian outbound-calling regulatory and provider research for Phase 2; not legally reviewed                        |
+| `scripts/audit-env.mjs`                                                  | Provisions the isolated `data/audit.sqlite` with two fictional accounts; never touches the real studio database   |
+| `server/tests/isolation.test.ts`                                         | Cross-account isolation and rejection-path tests, proven discriminating                                          |
 | `PLAN.md`                                                                | Original local-v1 plan and visual brief                                                                         |
 | `UPGRADE_PLAN.md`                                                        | Preimplementation beta upgrade plan                                                                             |
 | `HANDOVER.md`                                                            | Active state, results, limitations, remaining tasks and process inventory                                       |
@@ -157,7 +167,7 @@ The private Raisina workbook has now been copied into the persistent local studi
 
 ## Backend and voice contract
 
-SQLite tables: users, sessions, workspaces, files, calls, events, audit. Passwords are salted scrypt hashes; raw session tokens only in HttpOnly cookies, hashes in DB. Sessions expire after7days. Mutation requests require custom same-origin request header and matching Origin when present. Rate limits and request size limits apply. All user-accessible workspace/file/call queries are scoped by authenticated account. Workspace PUT uses compare-and-swap revision and returns409 rather than overwriting another editor. Failed sync freezes automatic writes and keeps pending state exportable.
+SQLite tables: users, sessions, workspaces, files, calls, events, audit. Passwords are salted scrypt hashes; raw session tokens only in HttpOnly cookies, hashes in DB. Sessions expire after7days. Mutation requests require custom same-origin request header (`x-nivo-request`) and matching Origin when present; this is verified enforced. Request size limits apply. **Rate limits are configured but DO NOT APPLY: `@fastify/rate-limit` is registered without `await` at `server/app.ts:79`, so neither the global limit nor any per-route `config.rateLimit` is ever bound. Login accepts unlimited password guesses. See finding F-02 in `docs/audit/FINDINGS.md`; this is an open Blocker.** All user-accessible workspace/file/call queries are scoped by authenticated account, and cross-account isolation has been verified by direct API request with tests confirmed to fail if the tenant predicate is removed. The `/api/agent/*` callback endpoints are the exception: they query calls by id with no tenant predicate, gated only by one shared `AGENT_CALLBACK_SECRET` (finding F-03, deferred to Phase 1). Workspace PUT uses compare-and-swap revision and returns409 rather than overwriting another editor. Failed sync freezes automatic writes and keeps pending state exportable.
 
 API endpoints: health/session/login/logout; GET/PUT workspace; GET/PUT files/:id; voice/status; calls list/detail/create/end/extract; signed agent brief fetch and event delivery. Call setup uses immutable saved brief, server-selected vendor number and named dispatch `nivo-quotes`. Phone mode requires flag, trunk, international number and explicit UI confirmation. One active call per studio; idempotent request IDs. Browser token is short-lived and room-scoped. Room metadata carries only call UUID. Agent fetches full brief over signed API, without internal prices or provider secrets.
 
@@ -170,6 +180,16 @@ Extraction uses server-configured compatible chat endpoint. Validated drafts mus
 Architectural precision desk: ink#183247, canvas#edf0f2, paper#f6f7f5, blue#315bdb, muted#667985, borders#d6dfe4. Manrope and tabular money. Crisp0–2px corners, original icons/logo/plan drawings. No UI kit/Lucide, gradients, shadows, pure-white backgrounds, glass, neon, purple/black theme, decorative bento/radial/dot treatments, sparkle/checkmark marketing, fake testimonials or feature-card trios. Follow user's reel screenshot, not generic SaaS defaults. Official Anthropic frontend-design guidance was read for original v1; image generation is unnecessary for native SVG assets.
 
 Motion is brief page opacity, dialogs and action feedback; skeleton only while loading. Reduced-motion honored. No decorative hover motion. Native dialogs trap focus/Escape and restore focus; mobile nav is inert when closed and traps focus while open. Phone BOQs have dedicated item layout below600px. Tables contain their own overflow. Touch inputs16px and readable focus labels. Automated Chromium320/390/768/1024/1440 checks are not claims of physical iOS/Android compatibility.
+
+## What the audit established
+
+Verified with per-row evidence, for the 59 rows with a recorded result:
+
+- **Costing is correct.** 15 of 16 boundary assertions pass. Null cost stays distinct from zero, rate-only lines carry a selling rate and no amount, assembly and markup round as documented, `markupOverride` beats the project markup including at `0`, and line amounts use the already-rounded rate. The one failure is F-01, confirmed not user-reachable.
+- **Tenant isolation holds on the user-facing API.** No cross-account probe succeeded. The tests were verified to fail if the tenant predicate were removed, rather than merely passing.
+- **The client quotation export leaks nothing.** It builds a fresh workbook from `project.items` and never reads the original file's bytes, so it structurally cannot carry a purchase cost or a private sheet; confirmed empirically as well. Stored workbook bytes round-trip byte-identically.
+
+Unverified: every screen, filter, dialog and interactive control, the entire voice desk, and both operating modes end to end. See HANDOVER.md.
 
 ## Delivery limits and next decisions
 
