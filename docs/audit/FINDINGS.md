@@ -60,7 +60,7 @@ the two hypotheses below.
 
 ### F-03: The agent callback boundary has no tenant predicate at all — deferred to Phase 1
 
-- **Severity:** Major
+- **Severity:** Major — DEFERRED TO PHASE 1
 - **Status:** DEFERRED TO PHASE 1 (not a defect in Task 5's scope; recorded now because Phase 1 multi-tenancy work needs it as an input)
 - **Inventory row:** none — this boundary sits outside `API-01`..`API-27`, which only cover the
   user-facing (cookie-authenticated) endpoints. It needs its own inventory row when Phase 1 begins.
