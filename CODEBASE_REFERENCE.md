@@ -2,7 +2,7 @@
 
 Updated 23 September 2026 after the continuation, live voice validation, and the partially completed Phase 0 audit. **Read the newest checkpoint at the top of HANDOVER.md for test results, running processes, open findings and remaining work.** This file explains the product and codebase; the handover records the active session. Never infer production readiness from implemented source code.
 
-**Audit status.** A Phase 0 audit is in progress and stopped after 6 of 12 tasks. 59 of 218 inventoried behaviours have a recorded result; the other 159 — every screen, filter, dialog, control and the whole voice desk — are unverified. Four findings are recorded, one of them an open Blocker (F-02, rate limiting inert). Nothing has been fixed yet. Two test suites are deliberately red as recorded evidence and must not be "repaired". Statements in this file about verified behaviour apply only to rows with a recorded result in `docs/audit/INVENTORY.md`.
+**Audit status.** Phase 0 verification has advanced through the local and studio browser walkthroughs. 198 of 218 inventoried rows have results; the remaining 20 cover voice and studio voice controls. The main 24 UI scenarios, two import-limit scenarios and demo/login flow pass. F-05 records a new modal focus-wrapping defect and F-06 defers workspace-wide concurrency to Phase 1. F-02 (inert rate limiting) remains an open Blocker until Task 10. Product fixes have not started; four failing regression checks preserve F-01/F-02/F-04/F-05. The continuation speech smoke passed with four transcript turns and 54.4 seconds of audio; see HANDOVER.md for ongoing browser voice verification.
 
 ## Product and scope
 

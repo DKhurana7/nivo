@@ -81,3 +81,23 @@ the two hypotheses below.
 - **Impact:** A studio user can lose original-workbook export capability for an entire priced BOQ from a single, seemingly harmless item removal, discover it only later when the (silently disabled) export button doesn't respond, and have no path back except re-importing and re-pricing the whole project. Inconsistent with the edit-form path, which does warn before an equivalent side effect.
 - **Suspected file:** `src/components/BoqPage.tsx` (delete-item `onClick`, near the "Remove this item?" `Modal`).
 - **Not fixed here per Task 6 scope** (measurement only); Task 10 addresses it.
+
+### F-05: Modal keyboard focus does not wrap at its boundaries
+
+- **Severity:** Minor — OPEN
+- **Inventory row:** DLG-01, DLG-10
+- **Reproduction:** `npm run test:e2e -- tests/e2e/modal.spec.ts`; open Project details, focus Save project details, press Tab.
+- **Observed:** Chrome moves focus outside the dialog instead of to Close dialog. The new regression fails before any application change. Native `showModal()` alone does not provide the inventory's explicit keyboard wrapping contract.
+- **Expected:** Tab from the last focusable control wraps to the first; Shift+Tab wraps back. Escape restores focus to the triggering control.
+- **Suspected file:** `src/components/ui.tsx`, shared `Modal`.
+- **Scope:** No quotation or stored data changes. Fix the shared keyboard boundary without including hidden controls inside collapsed details.
+
+### F-06: Workspace-wide revision conflicts prevent independent concurrent edits
+
+- **Severity:** Major — DEFERRED TO PHASE 1
+- **Inventory row:** API-07; Task 8 sync-specific walkthrough
+- **Reproduction:** `npx playwright test --config playwright.audit.config.ts ui.spec.ts --grep 'Studio.*storage error'`. Two actual browser tabs load the same studio revision. The first saves; the second saves a different value from its stale revision.
+- **Observed:** The second write is refused, automatic writes freeze, its pending value remains visible and is present in its downloaded backup. The server retains the first tab's value. No silent overwrite occurred.
+- **Scope evidence:** This walkthrough changes settings. The API compares one workspace revision and replaces the entire workspace JSON, so the same restriction also applies to edits of different projects; that extension is a source-derived conclusion, not a separate UI probe.
+- **Expected for Phase 1:** Independent projects and records can be edited by different staff without unrelated revision conflicts; concurrent changes to the same record still require conflict handling.
+- **Resolution:** Row-level persistence and explicit firm/member ownership in Phase 1. Preserve the current refusal and pending-backup recovery during migration.

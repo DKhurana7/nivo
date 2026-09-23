@@ -2,6 +2,20 @@
 
 Updated 23 September 2026. Read CODEBASE_REFERENCE.md and the newest checkpoint below first. Sections after the checkpoint are historical; their old process IDs and incomplete-work statements are superseded.
 
+## Latest checkpoint: browser audit continuation, 23 September 2026
+
+Tasks 7 and 8 have now been exercised using `tests/audit/ui.spec.ts` against fresh browser contexts and the existing **isolated `data/audit.sqlite` API**. The earlier checkpoint below is historical. No product fix has been applied yet.
+
+- 24 main browser scenarios passed (12 in each mode); two additional import-limit/warning scenarios passed; the explicit demo/login scenario passed. Actual Excel artifacts and persisted workspace values were asserted.
+- Real two-tab stale-revision refusal passed. The losing tab retained its pending changes and its downloaded backup contained them. Logout invalidated API access.
+- `docs/audit/INVENTORY.md` now has 198 of 218 rows recorded. Only result cells changed; the frozen behaviour descriptions and 218 IDs are intact. Voice rows and studio voice controls are the remaining 20 rows.
+- New **F-05 Minor OPEN**: native dialog focus escapes instead of wrapping. `tests/e2e/modal.spec.ts` fails before product changes. **F-06 Major DEFERRED PHASE 1** records the workspace-wide revision restriction.
+- F-04 now has a real failing regression in `tests/e2e/workbook-delete.spec.ts`. Four known failing checks now preserve F-01/F-02/F-04/F-05; fix product causes in Task 10.
+- Task 9 is in progress. The real speech smoke, adapted to `data/audit-voice-login.json`, passed: **4 transcript turns, 54.4 seconds received audio, ₹125/m excluding GST, `needsReview: true`**, exit 0. Browser control tests are running next. Outbound remains false.
+- Audit helpers: `npx playwright test --config playwright.audit.config.ts ui.spec.ts access.spec.ts`; `node --import tsx scripts/audit-voice.mjs`; `NIVO_SMOKE_LOGIN_FILE=data/audit-voice-login.json agent/.venv/bin/python -m agent.smoke_session`; then `NIVO_AUDIT_VOICE=1 npx playwright test --config playwright.audit.config.ts voice.spec.ts`. Voice fixture preparation must run AFTER UI tests, which reset the fictional account.
+- Private traces, screenshots and evidence JSON are under ignored `data/audit-*`; they can contain synthetic account session tokens and must not be shared as public artifacts. Desktop settings and 390px BOQ screenshots were inspected.
+- No deployment, spending, real calls or writes to `data/nivo.sqlite`. Deployment host/domain and initial single-firm versus multi-firm scope were asked asynchronously; answers are pending.
+
 ## Latest checkpoint: Phase 0 audit halted after Task 6, 23 September 2026
 
 **You are picking up a partially completed audit. Read this entire checkpoint before running anything.**
