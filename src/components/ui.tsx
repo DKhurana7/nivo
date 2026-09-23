@@ -166,6 +166,24 @@ export function Modal({
         e.preventDefault();
         close.current();
       }}
+      onKeyDown={(e) => {
+        if (e.key !== 'Tab') return;
+        // Native dialogs keep the background inert, but Tab can still move into
+        // browser chrome. Wrap only controls that are currently visible.
+        const controls = Array.from(
+          e.currentTarget.querySelectorAll<HTMLElement>(
+            'button, input, select, textarea, a[href], summary, [tabindex]',
+          ),
+        ).filter((node) => node.tabIndex >= 0 && !node.matches(':disabled') && node.checkVisibility());
+        const first = controls[0], last = controls.at(-1);
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) close.current();
       }}
