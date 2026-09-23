@@ -207,7 +207,7 @@ Run appropriate domain/backend/browser/audio checks after changes, inspect scree
 
 ## Continuation and release inputs
 
-`docs/PRODUCTION_RELEASE.md` describes the concrete built artifact and outstanding launch checks. `docs/superpowers/specs/2026-09-23-phase1-input.md` lists scoped worker authorization, firm memberships, row-level persistence, reversible migration and preserved invariants; it is input to a future plan, not an approved implementation specification. Host/domain and single-firm versus multi-firm/shared-staff release scope are still pending user decisions.
+`docs/PRODUCTION_RELEASE.md` describes the concrete built artifact and outstanding launch checks. `docs/superpowers/specs/2026-09-23-phase1-input.md` lists scoped worker authorization, firm memberships, row-level persistence, reversible migration and preserved invariants; it is input to a future plan, not an approved implementation specification. The first release is now scoped to Technosmart only, one operator/one BOQ, with a strict ₹0 monthly budget and Deepgram credits. Multi-firm/shared-staff work is deferred. See `docs/ZERO_BUDGET_PILOT.md` for the proposed free hosting target and required migration; no cloud deployment is claimed.
 
 The real studio is served locally at `http://127.0.0.1:5178`, using `data/nivo.sqlite`. Its retained Raisina workbook remains byte-identical and all 112 costs are unpriced. A verified consistent pre-restart backup is under `data/backups/phase0-release/`. Audit scripts must only target `data/audit.sqlite`; check HANDOVER.md before switching services or running fixtures. Secrets, databases, call evidence, private screenshots and models remain ignored artifacts.
 
@@ -216,3 +216,9 @@ The real studio is served locally at `http://127.0.0.1:5178`, using `data/nivo.s
 `server/backup.ts` performs validated SQLite snapshots from a read-only source, including live WAL commits. It checks integrity, foreign keys and required tables, stages privately, and refuses to overwrite a destination or its SQLite sidecars. `scripts/backup-server.ts` and `scripts/restore-server.ts` expose this as operator CLI tools included in the production app image. `server/tests/backup.test.ts` covers all seven server tables, exact file bytes, live-WAL consistency, invalid sources and overwrite refusal. Use `docs/BACKUP_AND_RECOVERY.md` for commands and a deliberate switch to a recovered database; no recovery is automatically applied to the live studio.
 
 `scripts/smoke-container.mjs` checks the app image on an isolated network and anonymous volume. `scripts/smoke-worker-container.mjs` checks the worker's non-root cache/spool writes and Python suite. `agent/Dockerfile` pre-creates and owns `/home/worker/.cache` so a fresh Compose model-cache volume is writable. Both images and actual local speech models passed on Linux ARM64 through Colima; this does not establish public deployment or multi-architecture support.
+
+## Zero-budget Technosmart pilot
+
+The user selected one-company/one-operator testing and no recurring spend. Netlify Free + Supabase Free is the proposed hosted target; the current SQLite API still needs adaptation, so existing cloud accounts do not make this a configured deployment. `docs/ZERO_BUDGET_PILOT.md` records verified plan limits and LLM credit/free-tier options.
+
+The Python worker supports `TTS_PROVIDER=deepgram` with `DEEPGRAM_TTS_MODEL` defaulting to `aura-2-andromeda-en`, in addition to local Piper and ElevenLabs. Deepgram STT already existed. Provider construction was checked offline; live Deepgram validation awaits credentials. This is the LiveKit plugin pipeline, not Deepgram's separate managed Voice Agent API. Local runtime defaults and `.env` were not changed.

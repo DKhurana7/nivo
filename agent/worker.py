@@ -27,11 +27,14 @@ def build_providers():
     if os.getenv('TTS_PROVIDER', 'local') == 'local':
         from .local_models import PiperTTS
         tts = PiperTTS()
+    elif os.getenv('TTS_PROVIDER') == 'deepgram':
+        from livekit.plugins import deepgram
+        tts = deepgram.TTS(model=os.getenv('DEEPGRAM_TTS_MODEL', 'aura-2-andromeda-en'))
     elif os.getenv('TTS_PROVIDER') == 'elevenlabs':
         from livekit.plugins import elevenlabs
         tts = elevenlabs.TTS(voice_id=os.environ['ELEVENLABS_VOICE_ID'], model=os.getenv('ELEVENLABS_MODEL', 'eleven_multilingual_v2'))
     else:
-        raise ValueError('TTS_PROVIDER must be local or elevenlabs')
+        raise ValueError('TTS_PROVIDER must be local, deepgram or elevenlabs')
     llm = openai.LLM(model=os.getenv('LLM_MODEL', 'qwen3:4b-instruct'), base_url=os.getenv('LLM_BASE_URL', 'http://127.0.0.1:11434/v1'), api_key=os.getenv('LLM_API_KEY', 'local'), temperature=.2, max_completion_tokens=220)
     return stt, llm, tts
 

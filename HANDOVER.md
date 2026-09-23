@@ -2,7 +2,15 @@
 
 Updated 23 September 2026. Read CODEBASE_REFERENCE.md and the newest checkpoint below first. Sections after the checkpoint are historical; their old process IDs and incomplete-work statements are superseded.
 
-## Latest checkpoint: container and recovery verification, 23 September 2026
+## Latest checkpoint: Technosmart-only ₹0 pilot, 23 September 2026
+
+The user has now resolved release scope: **Technosmart only, one operator testing one BOQ, monthly budget ₹0**. Netlify, Vercel, Supabase and Railway accounts exist; use a free provider hostname. Deepgram credits are preferred; the user requested legitimate free/credit LLM options. Multi-firm/shared-staff implementation is deferred. This supersedes all earlier statements that release scope and budget are unanswered.
+
+`docs/ZERO_BUDGET_PILOT.md` records current primary-source research and the proposed Netlify Free + Supabase Free target, its required backend migration, Groq/Gemini/Ollama/Deepgram-managed-agent options, quota/privacy limits, and next steps. No cloud migration/deployment has occurred. Netlify and Railway CLI logins work; no Nivo Netlify site is linked. Supabase CLI is unauthenticated; the available Supabase connector was suggested and awaits user connection. Deepgram/Groq keys are absent from Nivo configuration. A public hostname has not been reserved.
+
+Added Deepgram TTS as a provider in `agent/worker.py` and documented `DEEPGRAM_TTS_MODEL` in `.env.example`. Existing local configuration is untouched. Six Python tests and offline provider construction pass; **no live Deepgram audio test has occurred**. Its managed Voice Agent API is still an alternative, not implemented. English versus Hindi/Hinglish is pending user response. Browser calls remain the zero-budget test path; no carrier calling enabled. Existing `release-check` images predate this provider-selection change and must be rebuilt before deploying it.
+
+## Completed checkpoint: container and recovery verification, 23 September 2026
 
 Phase 0 is preserved in commit `8978b17`. A further release-hardening pass completed after the user requested end-to-end continuation with concise updates. **Public deployment is still pending a host/domain and release scope; no carrier or real vendor call is configured.** The clarification questions remain unanswered.
 

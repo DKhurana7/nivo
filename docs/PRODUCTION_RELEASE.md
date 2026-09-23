@@ -1,6 +1,6 @@
 # Nivo release status
 
-Updated 23 September 2026. The audited build is suitable for supervised local single-operator use. Public production deployment has not occurred. No public host/domain or carrier has been supplied, and the multi-firm release scope is awaiting confirmation.
+Updated 23 September 2026. The audited build is suitable for supervised local single-operator use. Public production deployment has not occurred. The user selected Technosmart-only, single-operator testing on one BOQ with a strict ₹0 monthly budget. Multi-firm/shared-staff features are deferred. Use free provider hosting/subdomains and Deepgram credits; see `ZERO_BUDGET_PILOT.md` for current options and the required migration. No public site or carrier is configured.
 
 ## Concrete release artifact
 
