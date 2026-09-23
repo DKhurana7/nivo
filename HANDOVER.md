@@ -2,7 +2,17 @@
 
 Updated 23 September 2026. Read CODEBASE_REFERENCE.md and the newest checkpoint below first. Sections after the checkpoint are historical; their old process IDs and incomplete-work statements are superseded.
 
-## Latest checkpoint: Technosmart-only ₹0 pilot, 23 September 2026
+## Latest checkpoint: model benchmark and user-provided keys, 23 September 2026
+
+The user has added **their own Deepgram and Groq keys to ignored `.env`**. Both authenticate: read-only model/project requests returned HTTP 200. Groq listed 11 models; Deepgram refused member and balance access with 403. Its project label suggests an email, but account ownership and available credits are unverified. No billable inference/speech request was made. This supersedes the earlier missing-key notes. Current runtime still uses local models; adding keys alone does not switch providers.
+
+The user questioned Groq's free availability and prefers Gemini free-tier evaluation, with Deepgram managed Voice Agent as fallback. Groq docs still describe a Free tier, but do not assume the user's account or any particular model has free inference. No Gemini key is present. English versus Hindi/Hinglish remains unanswered.
+
+`docs/MODEL_EVALUATION.md` records a new real Ollama benchmark on this M3 Pro/18 GiB Mac. Warm text-only first tokens took 0.104–0.223s and full replies 0.453–2.587s, **excluding STT/TTS/endpointing/network**. Extraction passed 8/12 synthetic checks (median 2.286s); corrected quotes were safely rejected and coil prices missed. With explicit automatic tool selection, 3/4 normal-conversation probes wrongly selected `end_call`; opt-out probes passed 2/2. This is a small isolated LLM test, not a general accuracy rate or a new complete voice-session test. Do not present the local model as ready for unattended calling.
+
+New scripts: `scripts/benchmark-model.ts` (local-only synthetic evaluation) and `scripts/check-provider-keys.mjs` (read-only authentication, no secret output/inference). Three benchmark outputs are preserved in ignored `data/model-evals/`. Ollama was found stopped and restarted; other app services were not reverified in this pass, so old PIDs/readiness are historical. No client data was modified.
+
+## Completed checkpoint: Technosmart-only ₹0 pilot, 23 September 2026
 
 The user has now resolved release scope: **Technosmart only, one operator testing one BOQ, monthly budget ₹0**. Netlify, Vercel, Supabase and Railway accounts exist; use a free provider hostname. Deepgram credits are preferred; the user requested legitimate free/credit LLM options. Multi-firm/shared-staff implementation is deferred. This supersedes all earlier statements that release scope and budget are unanswered.
 

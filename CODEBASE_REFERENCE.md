@@ -222,3 +222,9 @@ The real studio is served locally at `http://127.0.0.1:5178`, using `data/nivo.s
 The user selected one-company/one-operator testing and no recurring spend. Netlify Free + Supabase Free is the proposed hosted target; the current SQLite API still needs adaptation, so existing cloud accounts do not make this a configured deployment. `docs/ZERO_BUDGET_PILOT.md` records verified plan limits and LLM credit/free-tier options.
 
 The Python worker supports `TTS_PROVIDER=deepgram` with `DEEPGRAM_TTS_MODEL` defaulting to `aura-2-andromeda-en`, in addition to local Piper and ElevenLabs. Deepgram STT already existed. Provider construction was checked offline; live Deepgram validation awaits credentials. This is the LiveKit plugin pipeline, not Deepgram's separate managed Voice Agent API. Local runtime defaults and `.env` were not changed.
+
+## Model evaluation and credential verification
+
+`docs/MODEL_EVALUATION.md` records the measured local Qwen 4B latency and accuracy limits. `scripts/benchmark-model.ts` uses the actual voice instructions and extraction validator with synthetic inputs, rejects remote endpoints and saves private local results. `scripts/check-provider-keys.mjs` makes read-only provider metadata requests and never prints keys or generates audio/completions.
+
+The user's Deepgram and Groq keys now authenticate, but neither paid inference nor credit/quota availability has been verified; Gemini remains unconfigured. Runtime model defaults are still local. Groq is not assumed to be free for this account. The preferred next comparison is Gemini free-tier Flash/Flash-Lite, with Deepgram managed Voice Agent as an alternative. Local text generation is fast on the tested Mac, but premature end-call tool selection and missed/invalid extraction make unattended use unsuitable without further work.
