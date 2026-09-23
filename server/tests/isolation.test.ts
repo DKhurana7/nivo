@@ -18,6 +18,24 @@ import { seedWorkspace } from '../../src/lib/seed';
 
 const headers = { 'x-nivo-request': '1' };
 
+test('F-02: ordinary routes enforce the global request limit and expose retry headers', async () => {
+  const db = database(':memory:');
+  const app = makeApp({ db });
+  try {
+    for (let i = 0; i < 300; i++) {
+      const response = await app.inject({ method: 'GET', url: '/api/health' });
+      assert.equal(response.statusCode, 200);
+      assert.equal(response.headers['x-ratelimit-limit'], '300');
+    }
+    const limited = await app.inject({ method: 'GET', url: '/api/health' });
+    assert.equal(limited.statusCode, 429);
+    assert.ok(Number(limited.headers['retry-after']) > 0);
+  } finally {
+    await app.close();
+    db.close();
+  }
+});
+
 async function loginAs(app: ReturnType<typeof makeApp>, email: string, password: string) {
   const res = await app.inject({
     method: 'POST',
