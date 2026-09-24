@@ -11,6 +11,8 @@ const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
 });
 const page = await context.newPage();
+// Keep the dedicated voice smoke independent of first-login onboarding.
+await page.route('**/api/onboarding', (route) => route.fulfill({ json: { showTour: false } }));
 await mkdir('data/verification', { recursive: true });
 try {
   await page.goto('http://127.0.0.1:5178/');

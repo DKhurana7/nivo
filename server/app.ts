@@ -163,6 +163,23 @@ export function makeApp(
         return { id: u.id, email: u.email, company: u.company };
       },
     );
+    // Account-level, independent of project revisions/backups. Atomic first-display claim.
+    app.post('/api/onboarding', async (req) => {
+      const user = getUser(req);
+      const action = (req.body as any)?.action;
+      if (!['start', 'skipped', 'completed'].includes(action))
+        throw fail('Invalid onboarding action.');
+      if (action === 'start') {
+        const inserted = db
+          .prepare("INSERT OR IGNORE INTO onboarding(user_id,status,updated) VALUES(?,'seen',?)")
+          .run(user.id, Date.now());
+        return { showTour: inserted.changes === 1 };
+      }
+      db.prepare(
+        'INSERT INTO onboarding VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET status=excluded.status,updated=excluded.updated',
+      ).run(user.id, action, Date.now());
+      return { showTour: false };
+    });
     app.post('/api/logout', async (req, reply) => {
       if (req.cookies.nivo_session)
         db.prepare('DELETE FROM sessions WHERE token=?').run(digest(req.cookies.nivo_session));

@@ -1,3 +1,5 @@
+import { Walkthrough } from './components/Walkthrough';
+import { claimFirstTour, rememberTour, type TourOutcome } from './lib/walkthrough';
 import { remote } from './lib/api';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -36,6 +38,28 @@ export default function App() {
     [storedWorkspace],
   );
   const [page, setPage] = useState<Page>(route);
+  const [tourOpen, setTourOpen] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void claimFirstTour()
+      .then((show) => {
+        if (live && show) setTourOpen(true);
+      })
+      .catch(() => {
+        if (live)
+          notify('The first-login guide could not be checked. You can open Help & walkthrough.');
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+  function endTour(outcome: TourOutcome) {
+    setTourOpen(false);
+    void rememberTour(outcome).catch(() =>
+      notify('Tour closed. Its final status could not be saved; use Help to reopen it.'),
+    );
+  }
+
   const [selectedProject, setSelectedProject] = useState(workspace.projects[0]?.id ?? '');
   const [newProject, setNewProject] = useState(false);
   const [mobile, setMobile] = useState(false);
@@ -99,6 +123,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (document.querySelector('dialog[data-walkthrough][open]')) return;
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setSearchOpen((s) => !s);
@@ -247,11 +272,26 @@ export default function App() {
             <span className="topbar-divider" />
             <span className="topbar-studio">{workspace.settings.company}</span>
           </div>
-          <button className="global-search" onClick={() => setSearchOpen(true)}>
-            <Icon name="search" size={17} />
-            <span>Jump to anything</span>
-            <kbd>⌘ K</kbd>
-          </button>
+          <div className="topbar-actions">
+            <button
+              data-tour="help"
+              className="help-button"
+              title="Help & walkthrough"
+              aria-label="Help & walkthrough"
+              onClick={() => {
+                setMobile(false);
+                setTourOpen(true);
+              }}
+            >
+              <Icon name="info" size={18} />
+              <span>Help</span>
+            </button>
+            <button className="global-search" onClick={() => setSearchOpen(true)}>
+              <Icon name="search" size={17} />
+              <span>Jump to anything</span>
+              <kbd>⌘ K</kbd>
+            </button>
+          </div>
         </header>
         {error && (
           <div className="storage-error" role="alert">
@@ -370,6 +410,7 @@ export default function App() {
           </motion.div>
         </main>
       </div>
+      {tourOpen && <Walkthrough page={page} onNavigate={navigate} onClose={endTour} />}
       <AnimatePresence>
         {toast && (
           <motion.div

@@ -41,6 +41,7 @@ test('built app works with production cookies and CSP and downloads a quotation'
   expect(login.status()).toBe(200);
   expect((await login.allHeaders())['set-cookie']).toContain('Secure');
   await expect(page.getByText('Studio server connected', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Skip tour', exact: true }).click();
   await page.goto('http://127.0.0.1:8790/#boq');
   await page.getByRole('button', { name: 'Export BOQ', exact: true }).click();
   const downloading = page.waitForEvent('download');

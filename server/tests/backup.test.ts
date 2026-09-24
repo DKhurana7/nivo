@@ -37,6 +37,7 @@ test('live WAL backup and restoration preserve all server tables and workbook by
       'request-id',
     );
     db.prepare('INSERT INTO events VALUES(?,?,?)').run('event-id', 'call-id', 2);
+    db.prepare("INSERT INTO onboarding VALUES(?,'skipped',?)").run(uid, 1234);
     // Source remains open with WAL writes while the snapshot is taken.
     const backup = snapshotDatabase(source, join(dir, 'backup.sqlite'));
     db.prepare('UPDATE users SET company=? WHERE id=?').run('Later edit', uid);
@@ -44,12 +45,22 @@ test('live WAL backup and restoration preserve all server tables and workbook by
     const restored = new DatabaseSync(restoredPath, { readOnly: true });
     const snapshot = new DatabaseSync(backup, { readOnly: true });
     try {
-      for (const table of ['users', 'sessions', 'workspaces', 'files', 'calls', 'events', 'audit'])
+      for (const table of [
+        'users',
+        'sessions',
+        'workspaces',
+        'files',
+        'calls',
+        'events',
+        'audit',
+        'onboarding',
+      ])
         assert.deepEqual(
           restored.prepare(`SELECT * FROM ${table}`).all(),
           snapshot.prepare(`SELECT * FROM ${table}`).all(),
         );
       assert.equal(restored.prepare('SELECT company FROM users').get()?.company, 'Recovery');
+      assert.equal(restored.prepare('SELECT status FROM onboarding').get()?.status, 'skipped');
       assert.deepEqual(
         Buffer.from(restored.prepare('SELECT bytes FROM files').get()!.bytes as Uint8Array),
         Buffer.from([0, 255, 23, 11]),

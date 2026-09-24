@@ -78,3 +78,11 @@ From **BOQ workbench → Import vendor quotation** (also in Rate library or an o
 6. In **Rate library**, open the offer to see its source row, reviewed calculation and **Download original quotation**. Full backups include quotation originals and verify their fingerprints on restore. A missing source prevents a purportedly complete backup.
 
 Each row is reviewed separately. Reimporting the same source row for the same vendor/project/item is blocked. Enquiry imports restrict the item list to that enquiry and keep partial responses awaiting quotes. Parsing runs on this device without an LLM or paid extraction service. No actual vendor document has yet been supplied for format-specific validation; complex/wrapped/rotated PDF layouts can need manual mapping or a cleaner Excel copy.
+
+## First-login walkthrough and Help
+
+On your next sign-in (or first refresh of an existing session after this upgrade), Nivo opens a guided walkthrough. It covers **53 feature topics across 10 chapters** and highlights the controls as it moves through the platform. Use **Next**, **Back** or **Jump to feature** to explore. Form/dialog features are explained at their entry buttons; the tour does not edit your BOQ, upload files or place calls.
+
+**Skip tour** or **Escape** closes it. First display is remembered against your studio account, so it will not automatically return on later logins, another browser/device, or a reload halfway through. Existing accounts receive this once after the upgrade. Completion and skipping do not affect any BOQ data.
+
+Use **Help & walkthrough** in the top bar (information icon on a phone) whenever you want to replay it. The chapter selector lets you jump directly to importing vendor PDFs, GST/pack conversions, costing, exports, voice or any other topic. Empty studios still show explanations for features that become available after adding records. Local demo has manual Help only.

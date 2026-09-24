@@ -115,6 +115,7 @@ export function SettingsPage({
           </div>
           <button
             className="button secondary full"
+            data-tour="backup"
             disabled={busy}
             onClick={async () => {
               setBusy(true);
@@ -131,7 +132,7 @@ export function SettingsPage({
             <Icon name="download" />
             Export full backup
           </button>
-          <label className="button secondary full file-button">
+          <label data-tour="restore" className="button secondary full file-button">
             <Icon name="upload" />
             Restore a backup
             <input
@@ -158,8 +159,8 @@ export function SettingsPage({
             Start an empty workspace
           </button>
           <p className="small-text muted">
-            Backups include available original Excel workbooks. Treat backup files as confidential
-            business information.
+            Backups include referenced original BOQ and vendor quotation files. Treat backup files
+            as confidential business information.
           </p>
         </section>
       </div>

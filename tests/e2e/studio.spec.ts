@@ -8,6 +8,7 @@ import ExcelJS from 'exceljs';
 const password = randomBytes(20).toString('hex');
 const db = database(':memory:');
 const id = addUser(db, 'pilot@example.test', password, 'Pilot Studio');
+db.prepare("INSERT INTO onboarding VALUES(?,'completed',?)").run(id, Date.now());
 const seed = seedWorkspace();
 seed.settings.company = 'Pilot Studio';
 db.prepare('UPDATE workspaces SET data=? WHERE user_id=?').run(JSON.stringify(seed), id);

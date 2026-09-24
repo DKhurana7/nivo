@@ -9,6 +9,9 @@ const prepared = JSON.parse(
 const project = prepared.workspace.projects[0];
 const browser = await chromium.launch({ channel: 'chrome' });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+// Read-only readiness checks must not consume the owner's first-login walkthrough.
+// Real account persistence and the full tour are tested in onboarding.spec.ts.
+await page.route('**/api/onboarding', (route) => route.fulfill({ json: { showTour: false } }));
 await mkdir('data/verification', { recursive: true });
 try {
   await page.goto(login.url);

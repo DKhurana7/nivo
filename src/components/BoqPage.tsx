@@ -112,14 +112,22 @@ export function BoqPage({
           </p>
         </div>
         <div className="heading-actions">
-          <button className="button secondary" onClick={() => setDocumentImport(true)}>
+          <button
+            data-tour="import-quote"
+            className="button secondary"
+            onClick={() => setDocumentImport(true)}
+          >
             Import vendor quotation
           </button>
-          <button className="button secondary" onClick={() => setImporting(true)}>
+          <button
+            data-tour="import-boq"
+            className="button secondary"
+            onClick={() => setImporting(true)}
+          >
             <Icon name="upload" />
             Import Excel
           </button>
-          <button className="button primary" onClick={() => setExporting(true)}>
+          <button data-tour="export" className="button primary" onClick={() => setExporting(true)}>
             <Icon name="download" />
             Export BOQ
           </button>
@@ -146,14 +154,18 @@ export function BoqPage({
         </label>
         <Badge tone="blue">{project.stage}</Badge>
         {project.demo && <Badge>Sample project</Badge>}
-        <button className="text-button" onClick={() => setProjectDetails(true)}>
+        <button
+          data-tour="project-details"
+          className="text-button"
+          onClick={() => setProjectDetails(true)}
+        >
           Project details
         </button>
         <span className="context-spacer" />
         <span>
           {t.reviewed} of {project.items.length} reviewed
         </span>
-        <button className="text-button" onClick={() => setPricing(true)}>
+        <button data-tour="pricing" className="text-button" onClick={() => setPricing(true)}>
           Pricing settings <Icon name="settings" size={16} />
         </button>
       </div>
@@ -195,7 +207,11 @@ export function BoqPage({
               </button>
             ))}
           </div>
-          <button className="button small primary" onClick={() => setEdit('new')}>
+          <button
+            data-tour="add-item"
+            className="button small primary"
+            onClick={() => setEdit('new')}
+          >
             <Icon name="plus" size={16} />
             Add item
           </button>

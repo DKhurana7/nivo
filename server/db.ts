@@ -13,6 +13,7 @@ export function database(path: string) {
     CREATE TABLE IF NOT EXISTS files(user_id TEXT NOT NULL REFERENCES users(id),id TEXT NOT NULL,bytes BLOB NOT NULL,PRIMARY KEY(user_id,id));
     CREATE TABLE IF NOT EXISTS calls(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),enquiry_id TEXT NOT NULL,mode TEXT NOT NULL,status TEXT NOT NULL,room TEXT NOT NULL,created INTEGER NOT NULL,updated INTEGER NOT NULL,brief TEXT NOT NULL,transcript TEXT NOT NULL DEFAULT '[]',drafts TEXT NOT NULL DEFAULT '[]',error TEXT NOT NULL DEFAULT '',request_id TEXT NOT NULL,UNIQUE(user_id,request_id));
     CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY,call_id TEXT NOT NULL REFERENCES calls(id),created INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS onboarding(user_id TEXT PRIMARY KEY REFERENCES users(id),status TEXT NOT NULL CHECK(status IN ('seen','skipped','completed')),updated INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY,user_id TEXT NOT NULL,action TEXT NOT NULL,created INTEGER NOT NULL);
   `);
   return db;

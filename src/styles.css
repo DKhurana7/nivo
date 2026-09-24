@@ -3261,3 +3261,137 @@ tbody tr:hover {
   font-weight: 600;
   padding: 14px 0;
 }
+
+/* Account-first guided tour. Native dialog keeps the workspace inert. */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.help-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+body.tour-active .main-shell {
+  padding-bottom: 55vh;
+}
+.tour-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  overflow: hidden;
+}
+.tour-dialog::backdrop {
+  background: transparent;
+}
+.tour-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.tour-card {
+  position: absolute;
+  width: min(440px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid #718493;
+  background: var(--paper, #f6f7f5);
+}
+.tour-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.tour-progress .text-button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tour-jump {
+  display: block;
+  margin: 16px 0;
+  font-size: 11px;
+}
+.tour-jump select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-top: 6px;
+  padding: 9px;
+  border: 1px solid #c4ced6;
+  background: #edf0f2;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+.tour-card h2 {
+  font-size: 22px;
+  line-height: 1.3;
+  margin: 12px 0;
+}
+.tour-card p {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 12px 0;
+}
+.tour-card .tour-availability {
+  font-size: 11px;
+  border-left: 2px solid #718493;
+  padding-left: 10px;
+}
+.tour-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 20px 0 12px;
+}
+.tour-card > small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+}
+@media (max-width: 759px) {
+  .topbar-actions {
+    gap: 6px;
+  }
+  .help-button span {
+    display: none;
+  }
+  .tour-card {
+    max-height: 55dvh;
+    padding: 16px;
+  }
+  .tour-card h2 {
+    font-size: 19px;
+  }
+  .tour-jump select {
+    font-size: 16px;
+  }
+  .tour-progress {
+    font-size: 10px;
+  }
+}
+@media print {
+  .tour-dialog,
+  .help-button {
+    display: none;
+  }
+}
